@@ -202,7 +202,10 @@ const SessionEngine = (() => {
     // Antworten für diese Frage zurücksetzen
     const qId = _getCurrentQuestionId();
     _state.answers[qId] = {};
-    _state.buzzer = { enabled: _state.quiz.settings.buzzerEnabled, activatedBy: null, activatedAt: null };
+    // Buzzer nur aktiv wenn answerMode === "buzzer"
+    const _currentQ = getCurrentQuestion();
+    const _buzzerOn = _currentQ?.answerMode === 'buzzer';
+    _state.buzzer = { enabled: _buzzerOn, activatedBy: null, activatedAt: null };
 
     persist();
     broadcast('QUESTION_OPENED', {

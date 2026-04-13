@@ -4,24 +4,20 @@
     "title": "Das große Allgemeinwissen-Quiz",
     "description": "Teste dein Wissen in verschiedenen Kategorien!",
     "version": "1.0",
-    "created": "2025-01-01",
     "settings": {
       "defaultTimer": 30,
-      "defaultPoints": 100,
-      "allowLateAnswers": false,
-      "showCorrectAnswerAfter": true,
-      "buzzerEnabled": true
+      "defaultPoints": 100
     },
     "rounds": [
       {
         "id": "round_001",
         "title": "Runde 1: Allgemeinwissen",
-        "description": "Grundlegende Wissensfragen",
         "pointsMultiplier": 1,
         "questions": [
           {
             "id": "q_mc_001",
             "type": "multiple-choice",
+            "answerMode": "multiple-choice",
             "category": "Geografie",
             "text": "Was ist die Hauptstadt von Australien?",
             "image": null,
@@ -39,6 +35,7 @@
           {
             "id": "q_est_001",
             "type": "estimate",
+            "answerMode": "estimate",
             "category": "Wissenschaft",
             "text": "In welchem Jahr wurde das World Wide Web erfunden?",
             "image": null,
@@ -62,20 +59,18 @@
       {
         "id": "round_002",
         "title": "Runde 2: Bilder-Quiz",
-        "description": "Was siehst du auf den Bildern?",
         "pointsMultiplier": 2,
         "questions": [
           {
-            "id": "q_img_001",
+            "id": "q_img_mc_001",
             "type": "image-quiz",
+            "answerMode": "multiple-choice",
             "category": "Sehenswürdigkeiten",
             "text": "Welches Bauwerk ist das?",
             "image": {
               "src": "assets/images/placeholder_landmark.jpg",
               "alt": "Berühmtes Bauwerk",
-              "reveal": "full",
-              "zoomEnabled": true,
-              "cropHint": null
+              "zoomEnabled": true
             },
             "options": [
               { "id": "a", "text": "Eiffelturm" },
@@ -87,18 +82,33 @@
             "points": 150,
             "timer": 20,
             "explanation": "Der Eiffelturm in Paris wurde 1889 fertiggestellt."
+          },
+          {
+            "id": "q_img_buzzer_001",
+            "type": "image-quiz",
+            "answerMode": "buzzer",
+            "category": "Tiere",
+            "text": "Was für ein Tier ist das?",
+            "image": {
+              "src": "assets/images/placeholder_animal.jpg",
+              "alt": "Ein Tier",
+              "zoomEnabled": true
+            },
+            "points": 200,
+            "timer": 30,
+            "explanation": "Der Moderator wertet die Antwort manuell."
           }
         ]
       },
       {
         "id": "round_003",
         "title": "Runde 3: Sortier-Quiz",
-        "description": "Bringe die Elemente in die richtige Reihenfolge!",
         "pointsMultiplier": 1,
         "questions": [
           {
             "id": "q_sort_001",
             "type": "sort",
+            "answerMode": "sort",
             "category": "Geschichte",
             "text": "Sortiere diese Ereignisse chronologisch (ältestes zuerst):",
             "image": null,
@@ -121,43 +131,5 @@
         ]
       }
     ]
-  },
-  "sessionTemplate": {
-    "id": null,
-    "code": null,
-    "quizId": null,
-    "status": "lobby",
-    "createdAt": null,
-    "moderator": {
-      "id": null,
-      "name": null
-    },
-    "players": [],
-    "currentRound": 0,
-    "currentQuestion": 0,
-    "questionStatus": "idle",
-    "buzzer": {
-      "enabled": false,
-      "activatedBy": null,
-      "activatedAt": null
-    },
-    "scores": {},
-    "answers": {},
-    "timer": {
-      "duration": 0,
-      "startedAt": null,
-      "endsAt": null,
-      "status": "idle"
-    }
-  },
-  "playerTemplate": {
-    "id": null,
-    "name": null,
-    "avatar": null,
-    "joinedAt": null,
-    "status": "active",
-    "score": 0,
-    "answers": {},
-    "buzzerPresses": []
   }
 }
