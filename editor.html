@@ -1122,6 +1122,110 @@ function showToast(msg, type='') {
   setTimeout(() => t.classList.remove('show'), 3000);
 }
 
+
+// ── Fight List Editor ────────────────────────────────────
+function renderFightListSection(ri, qi, q) {
+  const section = mkSection('FIGHT LIST EINSTELLUNGEN');
+  section.innerHTML += `
+    <div class="form-row">
+      <div class="field">
+        <label>Punkte pro richtiger Antwort</label>
+        <input type="number" min="1" value="${q.pointsPerAnswer||10}"
+               oninput="updateQuestion(${ri},${qi},'pointsPerAnswer',parseInt(this.value)||10)">
+      </div>
+      <div class="field">
+        <label>Hinweis fuer Spieler (optional)</label>
+        <input type="text" value="${esc(q.hint||'')}"
+               oninput="updateQuestion(${ri},${qi},'hint',this.value)"
+               placeholder="z.B. Nenne europaeische Hauptstaedte">
+      </div>
+    </div>
+    <div class="form-row single">
+      <div class="field">
+        <label>Moegliche Antworten (eine pro Zeile, optional)</label>
+        <textarea
+          oninput="updateFLAnswers(${ri},${qi},this.value)"
+          placeholder="Paris&#10;Berlin&#10;Rom&#10;Madrid&#10;..."
+          style="min-height:140px">${esc((q.validAnswers||[]).join('\n'))}</textarea>
+        <small style="color:var(--text-muted);font-size:0.75rem">
+          Optional – der Moderator kann auch manuell werten. Eine Antwort pro Zeile.
+        </small>
+      </div>
+    </div>
+  `;
+  return section;
+}
+
+function updateFLAnswers(ri, qi, val) {
+  const list = val.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+  quiz.rounds[ri].questions[qi].validAnswers = list;
+}
+
+// ── Higher Lower Editor ───────────────────────────────────
+function renderHigherLowerSection(ri, qi, q) {
+  const section = mkSection('HIGHER LOWER KARTEN');
+  const cards = q.cards || [];
+
+  const headerHtml = '<div style="display:flex;gap:0.5rem;padding:0 0.6rem;margin-bottom:0.25rem">' +
+    '<div style="width:26px;flex-shrink:0"></div>' +
+    '<div style="flex:2;font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em">Bezeichnung</div>' +
+    '<div style="width:90px;font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;text-align:center">Vergleichswert</div>' +
+    '<div style="flex:2;font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em">Bild-URL (optional)</div>' +
+    '<div style="width:32px;font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;text-align:center">Start</div>' +
+    (cards.length > 2 ? '<div style="width:32px"></div>' : '') +
+    '</div>';
+
+  const cardsHtml = cards.map((card, ci) => {
+    const isStart = card.isStart === true;
+    return '<div style="display:flex;align-items:center;gap:0.5rem;padding:0.5rem 0.6rem;background:' + (isStart?'var(--accent-glow)':'var(--bg-base)') + ';border-radius:var(--radius-sm);border:1px solid ' + (isStart?'var(--accent-dim)':'var(--border)') + '">' +
+      '<div style="width:26px;height:26px;border-radius:50%;background:var(--bg-highlight);color:var(--text-muted);font-size:0.75rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">' + (ci+1) + '</div>' +
+      '<input type="text" value="' + esc(card.label) + '" placeholder="z.B. Eiffelturm" oninput="updateHLCard(' + ri + ',' + qi + ',' + ci + ','label',this.value)" style="flex:2;background:var(--bg-elevated);border:1.5px solid var(--border);border-radius:6px;color:var(--text-primary);font-family:var(--font-body);font-size:0.875rem;padding:0.45rem 0.65rem;outline:none">' +
+      '<input type="number" value="' + (card.value||0) + '" placeholder="0" oninput="updateHLCard(' + ri + ',' + qi + ',' + ci + ','value',parseFloat(this.value)||0)" style="width:90px;background:var(--bg-elevated);border:1.5px solid var(--border);border-radius:6px;color:var(--accent);font-family:var(--font-display);font-size:1rem;padding:0.45rem 0.65rem;outline:none;text-align:center">' +
+      '<input type="text" value="' + esc(card.image||'') + '" placeholder="https://... oder leer" oninput="updateHLCard(' + ri + ',' + qi + ',' + ci + ','image',this.value)" style="flex:2;background:var(--bg-elevated);border:1.5px solid var(--border);border-radius:6px;color:var(--text-secondary);font-family:var(--font-body);font-size:0.8rem;padding:0.45rem 0.65rem;outline:none">' +
+      '<div style="width:32px;display:flex;justify-content:center"><input type="checkbox" title="Startkarte" ' + (isStart?'checked':'') + ' style="width:18px;height:18px;accent-color:var(--accent);cursor:pointer" onchange="setHLStartCard(' + ri + ',' + qi + ',' + ci + ',this.checked)"></div>' +
+      (cards.length > 2 ? '<button class="btn-delete" onclick="removeHLCard(' + ri + ',' + qi + ',' + ci + ')">x</button>' : '') +
+      '</div>';
+  }).join('');
+
+  section.innerHTML += '<div class="form-row">' +
+    '<div class="field"><label>Einheit des Vergleichswerts (z.B. "Mio. EUR", "km/h", "m")</label>' +
+    '<input type="text" value="' + esc(q.unit||'') + '" oninput="updateQuestion(' + ri + ',' + qi + ','unit',this.value)" placeholder="z.B. Meter"></div>' +
+    '<div class="field"><label>Leben pro Spieler</label>' +
+    '<input type="number" min="1" max="5" value="' + (q.lives||2) + '" oninput="updateQuestion(' + ri + ',' + qi + ','lives',parseInt(this.value)||2)"></div>' +
+    '</div>' +
+    '<p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:0.75rem">Markiere eine Karte als <strong style="color:var(--accent)">Startkarte</strong> (Checkbox). Der <strong>Vergleichswert</strong> ist nur fuer den Moderator sichtbar.</p>' +
+    headerHtml +
+    '<div style="display:flex;flex-direction:column;gap:0.4rem">' + cardsHtml + '</div>' +
+    '<button class="btn btn-secondary btn-sm" style="margin-top:0.75rem;width:100%" onclick="addHLCard(' + ri + ',' + qi + ')">+ Karte hinzufuegen</button>';
+  return section;
+}
+
+function setHLStartCard(ri, qi, ci, val) {
+  const cards = quiz.rounds[ri].questions[qi].cards || [];
+  cards.forEach((c, i) => { c.isStart = (i === ci && val); });
+  renderQuestionEditor(ri, qi);
+}
+
+function updateHLCard(ri, qi, ci, key, val) {
+  if (!quiz.rounds[ri].questions[qi].cards) quiz.rounds[ri].questions[qi].cards = [];
+  if (!quiz.rounds[ri].questions[qi].cards[ci]) quiz.rounds[ri].questions[qi].cards[ci] = { label:'', value:0, image:'', isStart:false };
+  quiz.rounds[ri].questions[qi].cards[ci][key] = val;
+}
+
+function addHLCard(ri, qi) {
+  if (!quiz.rounds[ri].questions[qi].cards) quiz.rounds[ri].questions[qi].cards = [];
+  quiz.rounds[ri].questions[qi].cards.push({ label: '', value: 0, image: '', isStart: false });
+  renderQuestionEditor(ri, qi);
+}
+
+function removeHLCard(ri, qi, ci) {
+  quiz.rounds[ri].questions[qi].cards.splice(ci, 1);
+  renderQuestionEditor(ri, qi);
+}
+
+
+
+
 // ── Init ──────────────────────────────────────────────────
 renderTree();
 </script>

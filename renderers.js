@@ -616,75 +616,57 @@ QuestionTypes['higher-lower'] = {
 
   renderPlayer(question, container, onSubmit) {
     container.innerHTML = '';
-
-    // Spieler sehen die aktuelle Karten-Leiste (read-only)
-    // Sie wird via BroadcastChannel / SessionEngine-State aktualisiert
     const state = typeof SessionEngine !== 'undefined' ? SessionEngine.getState() : null;
     const hl = state?.higherLower || null;
-
-    // Karten-Anzeige
-    const cardsWrap = document.createElement('div');
-    cardsWrap.id = 'hl-player-cards';
-    cardsWrap.style.cssText = 'display:flex;gap:0.75rem;flex-wrap:wrap;justify-content:center;margin:1rem 0';
-    _renderHLCards(question, hl, cardsWrap, false);
-    container.appendChild(cardsWrap);
-
-    // Aktiver Spieler
     const myId = typeof SessionEngine !== 'undefined' ? SessionEngine.getPlayerId() : null;
+
+    // Aktiver Spieler Info
     const activePlayer = hl?.activePlayerId || null;
     const isMe = myId && activePlayer === myId;
+    const activeName = state?.players?.find(p => p.id === activePlayer)?.name || '';
 
-    const statusBox = document.createElement('div');
-    statusBox.style.cssText = 'text-align:center;padding:1.5rem;background:var(--bg-elevated);border-radius:var(--radius-md);margin-top:0.5rem';
+    // Leben
+    const myLives = (hl && myId) ? (hl.lives?.[myId] ?? question.lives ?? 2) : null;
+    const maxLives = question.lives || 2;
 
+    // Header: wer ist dran + meine Leben
+    const header = document.createElement('div');
+    header.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem';
+
+    const activeInfo = document.createElement('div');
     if (isMe) {
-      statusBox.innerHTML = `
-        <div style="font-size:2rem;margin-bottom:0.5rem">🎯</div>
-        <p style="font-weight:700;color:var(--accent);font-size:1.1rem">Du bist dran!</p>
-        <p style="color:var(--text-secondary);font-size:0.9rem;margin-top:0.25rem">
-          Sage laut ob der nächste Begriff <strong>Higher</strong> oder <strong>Lower</strong> ist.
-        </p>
-      `;
-    } else if (activePlayer) {
-      const activeName = state?.players?.find(p => p.id === activePlayer)?.name || 'Jemand';
-      statusBox.innerHTML = `
-        <p style="color:var(--text-secondary)"><strong>${activeName}</strong> ist dran.</p>
-        <p style="color:var(--text-muted);font-size:0.85rem;margin-top:0.25rem">Schau zu!</p>
-      `;
+      activeInfo.innerHTML = '<span style="color:var(--accent);font-weight:700;font-size:1rem">🎯 Du bist dran!</span><br><span style="color:var(--text-muted);font-size:0.8rem">Sage laut Higher oder Lower</span>';
+    } else if (activeName) {
+      activeInfo.innerHTML = '<span style="color:var(--text-secondary);font-size:0.9rem"><strong>' + activeName + '</strong> ist dran</span>';
     } else {
-      statusBox.innerHTML = `
-        <div style="display:flex;gap:0.5rem;justify-content:center;margin-bottom:0.75rem">
-          <span class="loading-dot"></span><span class="loading-dot"></span><span class="loading-dot"></span>
-        </div>
-        <p style="color:var(--text-muted)">Warte auf den Moderator...</p>
-      `;
+      activeInfo.innerHTML = '<span style="color:var(--text-muted);font-size:0.85rem">Warte auf den Moderator...</span>';
     }
 
-    // Leben anzeigen
-    if (hl && myId) {
-      const myLives = hl.lives?.[myId];
-      if (myLives !== undefined) {
-        const livesDiv = document.createElement('div');
-        livesDiv.style.cssText = 'text-align:center;margin-top:1rem;font-size:1.5rem;letter-spacing:0.2rem';
-        const maxLives = question.lives || 2;
-        livesDiv.innerHTML = Array.from({length: maxLives}, (_, i) =>
-          `<span style="opacity:${i < myLives ? 1 : 0.25}">❤️</span>`
-        ).join('');
-        container.appendChild(livesDiv);
-      }
+    const livesEl = document.createElement('div');
+    livesEl.style.cssText = 'font-size:1.3rem;letter-spacing:0.1rem';
+    if (myLives !== null) {
+      livesEl.innerHTML = Array.from({length: maxLives}, (_, i) =>
+        '<span style="opacity:' + (i < myLives ? 1 : 0.2) + '">❤️</span>'
+      ).join('');
     }
 
-    container.appendChild(statusBox);
+    header.appendChild(activeInfo);
+    header.appendChild(livesEl);
+    container.appendChild(header);
+
+    // Skala
+    const scaleWrap = document.createElement('div');
+    scaleWrap.id = 'hl-scale-player';
+    _renderHLScale(question, hl, scaleWrap, false);
+    container.appendChild(scaleWrap);
   },
 
   renderModerator(question, answers, container) {
     container.innerHTML = '';
-
     const state = typeof SessionEngine !== 'undefined' ? SessionEngine.getState() : null;
     const hl = state?.higherLower;
 
     if (!hl) {
-      // Spiel noch nicht gestartet – Start-Button
       const startBtn = document.createElement('button');
       startBtn.className = 'btn btn-primary';
       startBtn.style.width = '100%';
@@ -697,12 +679,10 @@ QuestionTypes['higher-lower'] = {
       return;
     }
 
-    // Karten-Leiste
-    const cardsWrap = document.createElement('div');
-    cardsWrap.id = 'hl-mod-cards';
-    cardsWrap.style.cssText = 'display:flex;gap:0.75rem;flex-wrap:wrap;justify-content:center;margin-bottom:1.25rem';
-    _renderHLCards(question, hl, cardsWrap, true);
-    container.appendChild(cardsWrap);
+    // Skala (mit Werten sichtbar)
+    const scaleWrap = document.createElement('div');
+    _renderHLScale(question, hl, scaleWrap, true);
+    container.appendChild(scaleWrap);
 
     // Aktiver Spieler + Leben
     const activeName = state?.players?.find(p => p.id === hl.activePlayerId)?.name || '-';
@@ -712,77 +692,85 @@ QuestionTypes['higher-lower'] = {
     ).join('');
 
     const infoBox = document.createElement('div');
-    infoBox.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:0.75rem 1rem;background:var(--bg-elevated);border-radius:var(--radius-md);margin-bottom:1rem';
-    infoBox.innerHTML = `
-      <div>
-        <p style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em">Aktiver Spieler</p>
-        <p style="font-weight:700;font-size:1.1rem;color:var(--accent)">${activeName}</p>
-      </div>
-      <div style="text-align:right">
-        <p style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em">Leben</p>
-        <p style="font-size:1.3rem">${livesStr}</p>
-      </div>
-    `;
+    infoBox.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:0.75rem 1rem;background:var(--bg-elevated);border-radius:var(--radius-md);margin:1rem 0';
+    infoBox.innerHTML =
+      '<div><p style="font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em">Aktiver Spieler</p>' +
+      '<p style="font-weight:700;font-size:1.1rem;color:var(--accent)">' + activeName + '</p></div>' +
+      '<div style="text-align:right"><p style="font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em">Leben</p>' +
+      '<p style="font-size:1.3rem">' + livesStr + '</p></div>';
     container.appendChild(infoBox);
 
-    // Nächste Karte anzeigen (falls vorhanden)
-    const nextCardIndex = hl.placedCards.length;
-    const nextCard = question.cards[nextCardIndex] || null;
+    // Naechste Karte + Wert (nur Moderator sieht den Wert)
+    const nextIndex = hl.placedCardIndices.length;
+    const remainingIndices = question.cards
+      .map((c, i) => i)
+      .filter(i => !hl.placedCardIndices.includes(i) && i !== hl.startCardIndex);
+    const nextCardIndex = remainingIndices[0] ?? null;
+    const nextCard = nextCardIndex !== null ? question.cards[nextCardIndex] : null;
 
     if (nextCard) {
       const nextBox = document.createElement('div');
-      nextBox.style.cssText = 'padding:1rem;background:var(--bg-elevated);border:2px dashed var(--border);border-radius:var(--radius-md);margin-bottom:1rem;text-align:center';
-      nextBox.innerHTML = `
-        <p style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.5rem">Naechste Karte</p>
-        <p style="font-weight:700;font-size:1.1rem">${nextCard.label}</p>
-        <p style="font-family:var(--font-display);font-size:2rem;color:var(--accent)">${nextCard.value} ${question.unit||''}</p>
-      `;
+      nextBox.style.cssText = 'padding:1rem;background:var(--bg-elevated);border:2px dashed var(--accent-dim);border-radius:var(--radius-md);margin-bottom:1rem';
+
+      // Bild falls vorhanden
+      const imgHtml = nextCard.image
+        ? '<img src="' + nextCard.image + '" style="width:60px;height:60px;object-fit:cover;border-radius:6px;margin-bottom:0.5rem" onerror="this.style.display=\'none\'">'
+        : '';
+
+      nextBox.innerHTML =
+        '<p style="font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.5rem">Naechste Karte (nur du siehst den Wert)</p>' +
+        '<div style="display:flex;align-items:center;gap:1rem">' +
+        (imgHtml ? '<div>' + imgHtml + '</div>' : '') +
+        '<div><p style="font-weight:700;font-size:1.1rem">' + nextCard.label + '</p>' +
+        '<p style="font-family:var(--font-display);font-size:1.8rem;color:var(--accent)">' + nextCard.value + ' ' + (question.unit||'') + '</p></div>' +
+        '</div>';
       container.appendChild(nextBox);
 
-      // Higher / Lower Buttons
+      // Higher / Lower / Falsch Buttons
       const btnRow = document.createElement('div');
-      btnRow.style.cssText = 'display:flex;gap:0.75rem;margin-bottom:1rem';
+      btnRow.style.cssText = 'display:flex;gap:0.75rem;margin-bottom:0.75rem';
 
       const btnHigher = document.createElement('button');
       btnHigher.className = 'btn btn-success';
       btnHigher.style.flex = '1';
       btnHigher.innerHTML = '&#9650; Higher – Richtig';
-      btnHigher.addEventListener('click', () => _hlAnswer(question, state, true, container, answers));
+      btnHigher.addEventListener('click', () => _hlAnswer(question, state, nextCardIndex, true, container, answers));
 
       const btnLower = document.createElement('button');
       btnLower.className = 'btn btn-danger';
       btnLower.style.flex = '1';
       btnLower.innerHTML = '&#9660; Lower – Richtig';
-      btnLower.addEventListener('click', () => _hlAnswer(question, state, false, container, answers));
+      btnLower.addEventListener('click', () => _hlAnswer(question, state, nextCardIndex, true, container, answers));
 
       btnRow.appendChild(btnHigher);
       btnRow.appendChild(btnLower);
       container.appendChild(btnRow);
 
-      // Falsch-Button (Spieler hat falsch geraten)
       const btnWrong = document.createElement('button');
       btnWrong.className = 'btn btn-secondary';
-      btnWrong.style.width = '100%';
+      btnWrong.style.cssText = 'width:100%;margin-bottom:1rem';
       btnWrong.textContent = '✗ Spieler hat falsch geraten';
-      btnWrong.addEventListener('click', () => _hlWrong(question, state, container, answers));
+      btnWrong.addEventListener('click', () => _hlAnswer(question, state, nextCardIndex, false, container, answers));
       container.appendChild(btnWrong);
+
     } else {
-      // Alle Karten platziert
-      container.innerHTML += '<p style="color:var(--success);text-align:center;padding:1rem;font-weight:700">Alle Karten platziert! Spiel beendet.</p>';
+      const doneBox = document.createElement('div');
+      doneBox.style.cssText = 'padding:1rem;text-align:center;color:var(--success);font-weight:700;border:1px solid var(--success);border-radius:var(--radius-md);margin-bottom:1rem';
+      doneBox.textContent = '✓ Alle Karten platziert!';
+      container.appendChild(doneBox);
     }
 
     // Platzierung
     const rankDiv = document.createElement('div');
-    rankDiv.style.cssText = 'margin-top:1rem';
-    rankDiv.innerHTML = '<p style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.5rem">Platzierung (ausgeschieden)</p>';
+    rankDiv.innerHTML = '<p style="font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.5rem">Ausgeschieden</p>';
     if (hl.eliminated.length === 0) {
-      rankDiv.innerHTML += '<p style="color:var(--text-muted);font-size:0.85rem">Noch niemand ausgeschieden.</p>';
+      rankDiv.innerHTML += '<p style="color:var(--text-muted);font-size:0.85rem">Noch niemand.</p>';
     } else {
       hl.eliminated.forEach((pid, i) => {
         const name = state?.players?.find(p => p.id === pid)?.name || pid;
         const row = document.createElement('div');
-        row.style.cssText = 'display:flex;gap:0.75rem;align-items:center;padding:0.4rem 0;border-bottom:1px solid var(--border)';
-        row.innerHTML = `<span style="color:var(--text-muted)">${i+1}.</span><span>${name}</span><span style="color:var(--text-muted);font-size:0.8rem">ausgeschieden</span>`;
+        row.style.cssText = 'display:flex;gap:0.75rem;align-items:center;padding:0.4rem 0;border-bottom:1px solid var(--border);font-size:0.9rem';
+        row.innerHTML = '<span style="color:var(--text-muted)">' + (i+1) + '.</span><span>' + name + '</span>';
         rankDiv.appendChild(row);
       });
     }
@@ -793,46 +781,36 @@ QuestionTypes['higher-lower'] = {
 // ─── Higher-Lower Hilfsfunktionen ─────────────────────────
 
 function _hlInit(question, state) {
-  if (!state || !SessionEngine) return;
-  const players = state.players.filter(p => state.scores[p.id] !== undefined);
+  if (!state) return;
+  const players = state.players;
   const lives = {};
   players.forEach(p => lives[p.id] = question.lives || 2);
 
+  // Startkarte finden (* markiert)
+  const startIndex = question.cards.findIndex(c => c.isStart) ?? 0;
+
   state.higherLower = {
-    placedCards: [question.cards[0]], // Startkarte ist bereits platziert
+    startCardIndex: startIndex >= 0 ? startIndex : 0,
+    placedCardIndices: [],   // Indizes der bereits platzierten Karten (ohne Startkarte)
     activePlayerId: players[0]?.id || null,
     playerOrder: players.map(p => p.id),
     lives,
-    eliminated: [],
-    roundIndex: 0
+    eliminated: []
   };
 
-  // State über SessionEngine persistieren
-  if (typeof SessionEngine._setState === 'function') {
-    SessionEngine._setState(state);
-  } else {
-    // Direkter localStorage-Zugriff als Fallback
-    localStorage.setItem('quizmaster_session', JSON.stringify(state));
-    // BroadcastChannel informieren
-    if (window._hlChannel) window._hlChannel.postMessage({ type: 'HL_UPDATE', payload: state.higherLower });
-  }
+  _hlPersist(state);
 }
 
-function _hlAnswer(question, state, wasCorrect, container, answers) {
+function _hlAnswer(question, state, cardIndex, wasCorrect, container, answers) {
   const hl = state.higherLower;
   if (!hl) return;
 
-  const nextIndex = hl.placedCards.length;
-  const nextCard = question.cards[nextIndex];
-  if (!nextCard) return;
-
   // Karte platzieren
-  hl.placedCards.push(nextCard);
+  hl.placedCardIndices.push(cardIndex);
 
   if (!wasCorrect) {
     _hlLoseLife(question, state, hl);
   } else {
-    // Naechsten Spieler
     _hlNextPlayer(state, hl);
   }
 
@@ -840,33 +818,20 @@ function _hlAnswer(question, state, wasCorrect, container, answers) {
   QuestionTypes['higher-lower'].renderModerator(question, answers, container);
 }
 
-function _hlWrong(question, state, container, answers) {
-  const hl = state.higherLower;
-  if (!hl) return;
-  _hlLoseLife(question, state, hl);
-  _hlPersist(state);
-  QuestionTypes['higher-lower'].renderModerator(question, answers, container);
-}
-
 function _hlLoseLife(question, state, hl) {
   const pid = hl.activePlayerId;
   hl.lives[pid] = (hl.lives[pid] || 1) - 1;
-
   if (hl.lives[pid] <= 0) {
-    // Spieler ausgeschieden
     hl.eliminated.push(pid);
     hl.playerOrder = hl.playerOrder.filter(id => id !== pid);
-    if (hl.playerOrder.length === 0) return; // Alle raus
   }
-
   _hlNextPlayer(state, hl);
 }
 
 function _hlNextPlayer(state, hl) {
   if (hl.playerOrder.length === 0) { hl.activePlayerId = null; return; }
-  const currentIndex = hl.playerOrder.indexOf(hl.activePlayerId);
-  const nextIndex = (currentIndex + 1) % hl.playerOrder.length;
-  hl.activePlayerId = hl.playerOrder[nextIndex];
+  const cur = hl.playerOrder.indexOf(hl.activePlayerId);
+  hl.activePlayerId = hl.playerOrder[(cur + 1) % hl.playerOrder.length];
 }
 
 function _hlPersist(state) {
@@ -878,40 +843,141 @@ function _hlPersist(state) {
   } catch(e) {}
 }
 
-function _renderHLCards(question, hl, container, isModerator) {
+// ─── Skalen-Renderer ──────────────────────────────────────
+// Baut die horizontale Skala wie im Referenzbild:
+// Niedrig ──────── Hoch, Karten oben drauf positioniert
+function _renderHLScale(question, hl, container, showValues) {
   container.innerHTML = '';
-  if (!hl) {
-    // Nur Startkarte zeigen
-    const card = question.cards?.[0];
-    if (card) container.appendChild(_mkHLCard(card, question.unit, true, false));
-    return;
+
+  const cards = question.cards || [];
+  if (!cards.length) return;
+
+  // Alle Karten mit Werten sammeln
+  const startIndex = hl ? hl.startCardIndex : (question.cards.findIndex(c => c.isStart) ?? 0);
+  const placedIndices = hl ? [startIndex, ...hl.placedCardIndices] : [startIndex >= 0 ? startIndex : 0];
+  const placedCards = placedIndices.map(i => ({ ...cards[i], _index: i }));
+
+  // Naechste Karte (noch nicht platziert)
+  const allIndices = cards.map((_, i) => i);
+  const remainingIndices = allIndices.filter(i => !placedIndices.includes(i));
+  const nextCard = remainingIndices.length > 0 ? { ...cards[remainingIndices[0]], _index: remainingIndices[0] } : null;
+
+  // Werte-Range fuer Positionierung
+  const allValues = placedCards.map(c => c.value);
+  const minVal = Math.min(...allValues);
+  const maxVal = Math.max(...allValues);
+  const range = maxVal - minVal || 1;
+
+  // Wrapper
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'position:relative;width:100%;padding:0 1rem;box-sizing:border-box';
+
+  // ── Naechste Karte oben zentriert ───────────────────────
+  if (nextCard) {
+    const pending = document.createElement('div');
+    pending.style.cssText = 'display:flex;justify-content:center;margin-bottom:1.5rem';
+    const card = _mkHLCardEl(nextCard, false, true, false);
+    card.style.border = '2px dashed var(--accent)';
+    card.style.opacity = '0.9';
+    pending.appendChild(card);
+    wrap.appendChild(pending);
   }
 
-  hl.placedCards.forEach((card, i) => {
-    container.appendChild(_mkHLCard(card, question.unit, true, i === hl.placedCards.length - 1));
-    // Trennpfeil zwischen Karten
-    if (i < hl.placedCards.length - 1) {
-      const arrow = document.createElement('div');
-      arrow.style.cssText = 'display:flex;align-items:center;color:var(--text-muted);font-size:1.2rem;align-self:center';
-      arrow.textContent = '→';
-      container.appendChild(arrow);
+  // ── Skalen-Bereich ───────────────────────────────────────
+  const scaleArea = document.createElement('div');
+  scaleArea.style.cssText = 'position:relative;height:' + (placedCards.length > 0 ? '110px' : '60px') + ';margin:0 0.5rem';
+
+  // Linie
+  const line = document.createElement('div');
+  line.style.cssText = 'position:absolute;top:50%;left:0;right:0;height:3px;background:linear-gradient(to right, var(--info), var(--accent));border-radius:2px;transform:translateY(-50%)';
+  scaleArea.appendChild(line);
+
+  // Niedrig / Hoch Labels
+  const lblLow = document.createElement('div');
+  lblLow.style.cssText = 'position:absolute;left:-0.5rem;top:50%;transform:translateY(-50%);font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em;white-space:nowrap';
+  lblLow.textContent = 'Niedrig';
+  scaleArea.appendChild(lblLow);
+
+  const lblHigh = document.createElement('div');
+  lblHigh.style.cssText = 'position:absolute;right:-0.5rem;top:50%;transform:translateY(-50%);font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em;white-space:nowrap';
+  lblHigh.textContent = 'Hoch';
+  scaleArea.appendChild(lblHigh);
+
+  // Tick-Striche
+  for (let i = 0; i <= 10; i++) {
+    const tick = document.createElement('div');
+    const pct = i * 10;
+    tick.style.cssText = 'position:absolute;bottom:calc(50% - 1px);left:' + pct + '%;width:1px;height:8px;background:var(--border);transform:translateX(-50%)';
+    scaleArea.appendChild(tick);
+  }
+
+  // Karten auf Skala positionieren
+  // Berechne Spalten um Überlappungen zu vermeiden
+  const sorted = [...placedCards].sort((a, b) => a.value - b.value);
+  const ROW_HEIGHT = 52;
+
+  sorted.forEach((card, si) => {
+    const pct = range > 0 ? ((card.value - minVal) / range) * 80 + 10 : 50;
+    // Zeile abwechselnd oben/unten
+    const above = si % 2 === 0;
+
+    const cardEl = _mkHLCardEl(card, showValues, false, card._index === startIndex);
+    cardEl.style.position = 'absolute';
+    cardEl.style.left = 'calc(' + pct + '% - 45px)';
+    cardEl.style.width = '90px';
+
+    if (above) {
+      cardEl.style.bottom = 'calc(50% + 8px)';
+    } else {
+      cardEl.style.top = 'calc(50% + 8px)';
     }
+
+    // Verbindungslinie zur Skala
+    const connector = document.createElement('div');
+    connector.style.cssText = 'position:absolute;left:calc(' + pct + '% - 1px);width:2px;background:var(--border);' +
+      (above ? 'bottom:50%;height:8px' : 'top:50%;height:8px');
+    scaleArea.appendChild(connector);
+
+    scaleArea.appendChild(cardEl);
   });
+
+  scaleArea.style.height = Math.max(120, 60 + Math.ceil(placedCards.length / 2) * RO_HEIGHT) + 'px';
+
+  wrap.appendChild(scaleArea);
+  container.appendChild(wrap);
 }
 
-function _mkHLCard(card, unit, showValue, isLatest) {
+// Einzelne Karten-Kachel bauen
+function _mkHLCardEl(card, showValue, isPending, isStart) {
   const el = document.createElement('div');
-  el.style.cssText = `
-    min-width:100px; padding:0.875rem;
-    background:${isLatest ? 'var(--accent-glow)' : 'var(--bg-elevated)'};
-    border:2px solid ${isLatest ? 'var(--accent)' : 'var(--border)'};
-    border-radius:var(--radius-md); text-align:center;
-    transition: all 0.3s;
-  `;
-  el.innerHTML = `
-    <div style="font-size:0.8rem;color:var(--text-secondary);margin-bottom:0.25rem">${card.label}</div>
-    ${card.image ? `<img src="${card.image}" style="width:60px;height:60px;object-fit:cover;border-radius:6px;margin-bottom:0.25rem" onerror="this.style.display='none'">` : ''}
-    ${showValue ? `<div style="font-family:var(--font-display);font-size:1.4rem;color:var(--accent)">${card.value} ${unit||''}</div>` : '<div style="font-family:var(--font-display);font-size:1.4rem;color:var(--text-muted)">???</div>'}
-  `;
+  el.style.cssText = [
+    'background:' + (isStart ? 'var(--accent-glow)' : isPending ? 'var(--bg-card)' : 'var(--bg-elevated)'),
+    'border:2px solid ' + (isStart ? 'var(--accent)' : 'var(--border)'),
+    'border-radius:var(--radius-md)',
+    'padding:0.4rem',
+    'text-align:center',
+    'transition:all 0.3s',
+    'position:relative'
+  ].join(';');
+
+  const imgHtml = card.image
+    ? '<img src="' + card.image + '" style="width:52px;height:52px;object-fit:cover;border-radius:6px;display:block;margin:0 auto 0.2rem" onerror="this.style.display=\'none\'">'
+    : '';
+
+  const valueHtml = showValue
+    ? '<div style="font-family:var(--font-display);font-size:0.9rem;color:var(--accent);line-height:1">' + card.value + '</div>'
+    : '';
+
+  const starHtml = isStart
+    ? '<div style="position:absolute;top:-6px;right:-6px;background:var(--accent);color:#000;border-radius:50%;width:14px;height:14px;font-size:0.6rem;display:flex;align-items:center;justify-content:center;font-weight:900">★</div>'
+    : '';
+
+  el.innerHTML = starHtml + imgHtml +
+    '<div style="font-size:0.7rem;color:var(--text-secondary);line-height:1.2;margin-top:0.1rem">' + (card.label || '') + '</div>' +
+    valueHtml;
+
   return el;
 }
+
+// Typo-Fix: ROW_HEIGHT statt ROH_HEIGHT
+window.QuestionTypes = QuestionTypes;
