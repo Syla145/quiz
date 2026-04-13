@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QuizMaster – Spieler</title>
+  <link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+
+<!-- ══════════════════════════════════════
+     BEITRITT
+══════════════════════════════════════ -->
+<div id="view-join" style="display:flex;align-items:center;justify-content:center;min-height:100vh;padding:2rem;">
+  <div style="max-width:420px;width:100%;">
+    <a href="index.html" class="btn btn-secondary btn-sm" style="margin-bottom:1.5rem;display:inline-block;">← Zurück</a>
+    <div class="card">
+      <h2 style="margin-bottom:1.5rem">Spiel beitreten</h2>
+      <div class="input-group">
+        <label for="join-name">Dein Name</label>
+        <input id="join-name" class="input" type="text" placeholder="z.B. Marie" autocomplete="off">
+      </div>
+      <div class="input-group">
+        <label for="join-code">Sitzungscode</label>
+        <input id="join-code" class="input" type="text" placeholder="z.B. ABC123"
+               maxlength="6" autocomplete="off"
+               style="font-family:var(--font-display);font-size:1.5rem;letter-spacing:0.2em;text-align:center">
+      </div>
+      <button id="join-btn" class="btn btn-primary" style="width:100%;margin-top:0.5rem">🎮 Beitreten</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     LOBBY
+══════════════════════════════════════ -->
+<div id="view-lobby" style="display:none;align-items:center;justify-content:center;min-height:100vh;padding:2rem;flex-direction:column;gap:1.5rem;text-align:center;">
+  <div>
+    <h2>Bereit!</h2>
+    <p>Hey <strong id="player-lobby-name">–</strong>, du bist drin!</p>
+  </div>
+  <div class="card" style="width:100%;max-width:420px;text-align:center">
+    <p style="color:var(--text-secondary);margin-bottom:0.5rem">Sitzungscode</p>
+    <div id="player-lobby-code" class="session-code" style="font-size:2.5rem">——</div>
+  </div>
+  <div class="card-sm" style="width:100%;max-width:420px;text-align:center">
+    <div style="display:flex;gap:0.5rem;justify-content:center;margin-bottom:1rem">
+      <span class="loading-dot"></span>
+      <span class="loading-dot"></span>
+      <span class="loading-dot"></span>
+    </div>
+    <p>Warte auf den Moderator…</p>
+    <p style="font-size:0.85rem;color:var(--text-muted);margin-top:0.5rem">
+      <span id="player-count">–</span> Spieler in der Lobby
+    </p>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     SPIEL
+══════════════════════════════════════ -->
+<div id="view-game" style="display:none;padding:1.5rem;">
+  <div class="container" style="max-width:600px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem">
+      <div>
+        <p style="font-size:0.8rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em">Punkte</p>
+        <p id="player-score-display" style="font-family:var(--font-display);font-size:2rem;color:var(--accent)">0</p>
+      </div>
+      <div id="player-timer" class="timer-display" style="display:none">–</div>
+    </div>
+    <div id="player-question-area" class="card" style="min-height:300px">
+      <div style="display:flex;align-items:center;justify-content:center;padding:3rem 1rem">
+        <p style="color:var(--text-muted)">Warte auf den Moderator…</p>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:center;margin-top:2rem">
+      <button id="buzzer-btn" class="buzzer-btn" style="display:none" disabled>BUZZ!</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     ENDE
+══════════════════════════════════════ -->
+<div id="view-end" style="display:none;align-items:center;justify-content:center;min-height:100vh;padding:2rem;flex-direction:column;gap:2rem;text-align:center;">
+  <div>
+    <h1>GAME OVER</h1>
+    <p style="color:var(--text-secondary)">Das Quiz ist beendet!</p>
+  </div>
+  <div id="player-final-scores" class="scoreboard" style="width:100%;max-width:480px;"></div>
+  <a href="index.html" class="btn btn-secondary btn-lg" style="width:100%;max-width:480px;">🏠 Zur Startseite</a>
+</div>
+
+<script src="js/core/session-engine.js"></script>
+<script src="js/core/timer-engine.js"></script>
+<script src="js/question-types/renderers.js"></script>
+<script>
+
+// ── Hilfsfunktionen ───────────────────────────────────────
+function showView(id) {
+  ['join','lobby','game','end'].forEach(v => {
+    const el = document.getElementById('view-' + v);
+    if (el) el.style.display = 'none';
+  });
+  const target = document.getElementById('view-' + id);
+  if (target) {
+    target.style.display = (['lobby','game','end'].includes(id)) ? 'flex' : 'block';
+    if (id === 'game') target.style.display = 'block';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+}
+
+function showToast(msg, type='') {
+  let t = document.getElementById('toast');
+  if (!t) { t = document.createElement('div'); t.id='toast'; t.className='toast'; document.body.appendChild(t); }
+  t.textContent = msg; t.className = 'toast ' + type;
+  requestAnimationFrame(() => requestAnimationFrame(() => t.classList.add('show')));
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+let _timerInterval = null;
+
+// ── Code-Input Großbuchstaben ─────────────────────────────
+document.getElementById('join-code').addEventListener('input', function() {
+  const pos = this.selectionStart;
+  this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  this.setSelectionRange(pos, pos);
+});
+
+// ── Beitreten ─────────────────────────────────────────────
+document.getElementById('join-btn').addEventListener('click', () => {
+  const code = document.getElementById('join-code').value.trim().toUpperCase();
+  const name = document.getElementById('join-name').value.trim();
+  if (!code || code.length < 4) { showToast('Bitte gib einen gültigen Code ein.', 'error'); return; }
+  if (!name || name.length < 2) { showToast('Bitte gib deinen Namen ein.', 'error'); return; }
+  try {
+    const { state } = SessionEngine.joinSession(code, name);
+    document.getElementById('player-lobby-name').textContent = name;
+    document.getElementById('player-lobby-code').textContent = code;
+    document.getElementById('player-count').textContent = state.players.length;
+    showView('lobby');
+  } catch(err) {
+    showToast(err.message, 'error');
+  }
+});
+
+// Enter-Taste im Code-Feld
+document.getElementById('join-code').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('join-btn').click();
+});
+
+// ── Buzzer ────────────────────────────────────────────────
+document.getElementById('buzzer-btn').addEventListener('click', () => {
+  try {
+    SessionEngine.pressBuzzer();
+  } catch(err) {
+    showToast(err.message, 'error');
+  }
+});
+
+// ── SessionEngine Events ──────────────────────────────────
+SessionEngine.on('sessionStarted', () => {
+  showView('game');
+  renderWaiting('Das Spiel beginnt!');
+});
+
+SessionEngine.on('questionOpened', ({ roundIndex, questionIndex, timer }) => {
+  const state = SessionEngine.getState();
+  const q = state.quiz.rounds[roundIndex]?.questions[questionIndex];
+  if (!q) return;
+  renderQuestion(q);
+  if (timer && timer.duration > 0) startTimer(timer.endsAt);
+});
+
+SessionEngine.on('questionClosed', () => {
+  stopTimer();
+  renderWaiting('Frage geschlossen – Auswertung läuft…');
+  disableBuzzer();
+});
+
+SessionEngine.on('questionChanged', () => {
+  stopTimer();
+  renderWaiting('Nächste Frage kommt gleich…');
+  disableBuzzer();
+});
+
+SessionEngine.on('buzzer', payload => {
+  const myId = SessionEngine.getPlayerId();
+  if (payload.playerId === myId) {
+    document.getElementById('buzzer-btn').classList.add('pressed');
+    showToast('🔔 Du hast den Buzzer gedrückt!', 'accent');
+  } else {
+    disableBuzzer();
+    showToast('Jemand anderes hat gebuzzert!', 'error');
+  }
+});
+
+SessionEngine.on('scoreUpdate', ({ scores }) => {
+  const myId = SessionEngine.getPlayerId();
+  const el = document.getElementById('player-score-display');
+  if (el) el.textContent = scores[myId] || 0;
+});
+
+SessionEngine.on('playerJoined', () => {
+  const state = SessionEngine.getState();
+  if (state) document.getElementById('player-count').textContent = state.players.length;
+});
+
+SessionEngine.on('sessionEnded', ({ scores }) => {
+  stopTimer();
+  showView('end');
+  renderFinalScores(scores);
+});
+
+// ── Render ────────────────────────────────────────────────
+function renderWaiting(msg) {
+  const area = document.getElementById('player-question-area');
+  area.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;padding:3rem 1rem;gap:1rem">' +
+    '<div style="display:flex;gap:0.5rem"><span class="loading-dot"></span><span class="loading-dot"></span><span class="loading-dot"></span></div>' +
+    '<p style="color:var(--text-secondary)">' + msg + '</p></div>';
+  hideBuzzer();
+}
+
+function renderQuestion(q) {
+  const area = document.getElementById('player-question-area');
+  area.innerHTML = '';
+  if (q.category) {
+    const cat = document.createElement('div');
+    cat.className = 'question-category';
+    cat.textContent = q.category;
+    area.appendChild(cat);
+  }
+  const qText = document.createElement('div');
+  qText.className = 'question-text';
+  qText.textContent = q.text;
+  area.appendChild(qText);
+
+  const answerArea = document.createElement('div');
+  const renderer = QuestionTypes[q.type];
+  if (renderer) {
+    renderer.renderPlayer(q, answerArea, (answer) => {
+      try {
+        SessionEngine.submitAnswer(answer);
+        showToast('✓ Antwort abgegeben!', 'success');
+      } catch(err) {
+        showToast(err.message, 'error');
+      }
+    });
+  }
+  area.appendChild(answerArea);
+
+  const state = SessionEngine.getState();
+  if (state?.buzzer?.enabled && !state?.buzzer?.activatedBy) showBuzzer();
+}
+
+function renderFinalScores(scores) {
+  const state = SessionEngine.getState();
+  const sorted = (state?.players||[]).map(p => ({ name:p.name, score:scores[p.id]||0 })).sort((a,b) => b.score-a.score);
+  const icons = ['🥇','🥈','🥉'];
+  document.getElementById('player-final-scores').innerHTML = sorted.map((p,i) =>
+    '<div class="score-row"><span class="score-rank">' + (icons[i]||(i+1)+'.') + '</span><span class="score-name">' + p.name + '</span><span class="score-pts">' + p.score + '</span></div>'
+  ).join('');
+}
+
+function showBuzzer() {
+  const btn = document.getElementById('buzzer-btn');
+  btn.style.display = 'flex'; btn.disabled = false; btn.classList.remove('pressed');
+}
+function hideBuzzer() {
+  document.getElementById('buzzer-btn').style.display = 'none';
+}
+function disableBuzzer() {
+  document.getElementById('buzzer-btn').disabled = true;
+}
+
+function startTimer(endsAt) {
+  stopTimer();
+  const el = document.getElementById('player-timer');
+  el.style.display = 'flex';
+  _timerInterval = setInterval(() => {
+    const rem = Math.max(0, Math.ceil((endsAt - Date.now()) / 1000));
+    el.textContent = rem;
+    el.classList.toggle('warning', rem <= 5);
+    if (rem <= 0) stopTimer();
+  }, 200);
+}
+
+function stopTimer() {
+  if (_timerInterval) { clearInterval(_timerInterval); _timerInterval = null; }
+  const el = document.getElementById('player-timer');
+  if (el) { el.textContent = '–'; el.style.display = 'none'; el.classList.remove('warning'); }
+}
+</script>
+</body>
+</html>
