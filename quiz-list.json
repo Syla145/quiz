@@ -4,5 +4,11 @@
     "title": "Das große Allgemeinwissen-Quiz",
     "description": "Geografie, Wissenschaft, Geschichte & mehr",
     "file": "data/quiz-sample.json"
+  },
+  {
+    "id": "quiz_002",
+    "title": "Mein neues Quiz",
+    "description": "Beschreibung...",
+    "file": "data/test_2.json"
   }
 ]
