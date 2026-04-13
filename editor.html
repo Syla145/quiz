@@ -296,7 +296,7 @@
     /* ── Typ-Selector ─────────────────────────────────────── */
     .type-selector {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(3, 1fr);
       gap: 0.5rem;
       margin-bottom: 1rem;
     }
@@ -456,21 +456,27 @@ const TYPE_ICONS = {
   'multiple-choice': '🔘',
   'estimate':        '📊',
   'image-quiz':      '🖼',
-  'sort':            '📋'
+  'sort':            '📋',
+  'fight-list':      '✍️',
+  'higher-lower':    '📈'
 };
 
 const TYPE_LABELS = {
   'multiple-choice': 'Multiple Choice',
   'estimate':        'Schätzfrage',
   'image-quiz':      'Bilderquiz',
-  'sort':            'Sortierung'
+  'sort':            'Sortierung',
+  'fight-list':      'Fight List',
+  'higher-lower':    'Higher Lower'
 };
 
 const ANSWER_MODE_LABELS = {
   'multiple-choice': 'Multiple Choice',
   'estimate':        'Regler',
   'buzzer':          'Buzzer',
-  'sort':            'Sortierung'
+  'sort':            'Sortierung',
+  'fight-list':      'Fight List',
+  'higher-lower':    'Higher Lower'
 };
 
 // ═══════════════════════════════════════════════════════════
@@ -616,7 +622,7 @@ function renderQuestionEditor(ri, qi) {
   const typeSection = mkSection('FRAGETYP');
   typeSection.innerHTML += `
     <div class="type-selector">
-      ${['multiple-choice','estimate','image-quiz','sort'].map(t => `
+      ${['multiple-choice','estimate','image-quiz','sort','fight-list','higher-lower'].map(t => `
         <button class="type-btn ${q.type===t?'active':''}" onclick="changeQuestionType(${ri},${qi},'${t}')">
           <span class="type-icon">${TYPE_ICONS[t]}</span>
           ${TYPE_LABELS[t]}
@@ -717,6 +723,14 @@ function renderQuestionEditor(ri, qi) {
 
   if (q.type === 'sort') {
     content.appendChild(renderSortSection(ri, qi, q));
+  }
+
+  if (q.type === 'fight-list') {
+    content.appendChild(renderFightListSection(ri, qi, q));
+  }
+
+  if (q.type === 'higher-lower') {
+    content.appendChild(renderHigherLowerSection(ri, qi, q));
   }
 }
 
@@ -904,9 +918,22 @@ function updateSortScoring(ri, qi, key, val) {
 function changeQuestionType(ri, qi, newType) {
   const q = quiz.rounds[ri].questions[qi];
   q.type = newType;
-  // Antwortmodus automatisch anpassen
   const modes = getAvailableModes(newType);
   if (!modes.includes(q.answerMode)) q.answerMode = modes[0];
+
+  // Typ-spezifische Defaults setzen
+  if (newType === 'fight-list' && !q.pointsPerAnswer) {
+    q.pointsPerAnswer = 10;
+  }
+  if (newType === 'higher-lower' && !q.cards) {
+    q.cards = [
+      { label: 'Startkarte', value: 100, image: '' },
+      { label: 'Karte 2', value: 0, image: '' }
+    ];
+    q.unit = '';
+    q.lives = 2;
+  }
+
   renderQuestionEditor(ri, qi);
   renderTree();
 }
@@ -917,6 +944,8 @@ function getAvailableModes(type) {
     case 'estimate':        return ['estimate'];
     case 'sort':            return ['sort'];
     case 'image-quiz':      return ['multiple-choice','buzzer','estimate'];
+    case 'fight-list':      return ['fight-list'];
+    case 'higher-lower':    return ['higher-lower'];
     default:                return ['multiple-choice'];
   }
 }

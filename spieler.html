@@ -366,6 +366,21 @@ SessionEngine.on('playerJoined', () => {
   if (state) { document.getElementById('player-count').textContent = state.players.length; updateLiveScoreboard(); }
 });
 
+// Higher-Lower Live-Update (Karten mitverfolgen)
+SessionEngine.on('channelMessage', ({ type, payload }) => {
+  if (type === 'HL_UPDATE') {
+    const area = document.getElementById('player-question-area');
+    const cardsWrap = document.getElementById('hl-player-cards');
+    if (cardsWrap && area) {
+      const q = SessionEngine.getCurrentQuestion();
+      if (q && q.type === 'higher-lower') {
+        // Karten neu rendern
+        QuestionTypes['higher-lower'].renderPlayer(q, area, () => {});
+      }
+    }
+  }
+});
+
 SessionEngine.on('sessionEnded', ({ scores }) => {
   stopTimer(); showView('end'); renderFinalScores(scores);
 });
