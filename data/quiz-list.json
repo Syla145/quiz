@@ -10,5 +10,11 @@
     "title": "Mein neues Quiz",
     "description": "Beschreibung...",
     "file": "data/test_2.json"
+  },
+  {
+    "id": "quiz_003",
+    "title": "Mein neues Quiz 2",
+    "description": "Beschreibung...",
+    "file": "data/Test_3.json"
   }
 ]
