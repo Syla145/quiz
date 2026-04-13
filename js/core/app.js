@@ -58,31 +58,28 @@ function showToast(message, type = '') {
 
 document.addEventListener('DOMContentLoaded', () => {
 
-  // Startseite anzeigen
-  showPage('home');
+  // Startseite anzeigen – alle anderen Seiten verstecken
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  const homePage = document.querySelector('[data-page="home"]');
+  if (homePage) homePage.classList.add('active');
 
-  // Views initialisieren
-  if (typeof ModeratorView !== 'undefined') ModeratorView.init();
-  if (typeof PlayerView !== 'undefined') PlayerView.init();
-
-  // Navigation: Moderator
+  // ─── Navigation: Hauptbuttons ────────────────────────────
   document.getElementById('go-moderator-btn')?.addEventListener('click', () => {
     showPage('mod-setup');
   });
 
-  // Navigation: Spieler
   document.getElementById('go-player-btn')?.addEventListener('click', () => {
     showPage('player-join');
   });
 
-  // Zurück-Buttons
+  // ─── Zurück-Buttons ──────────────────────────────────────
   document.querySelectorAll('[data-back]').forEach(btn => {
     btn.addEventListener('click', () => {
       showPage(btn.dataset.back);
     });
   });
 
-  // Code-Input: Automatisch Großbuchstaben
+  // ─── Code-Input: Automatisch Großbuchstaben ──────────────
   const codeInput = document.getElementById('join-code');
   if (codeInput) {
     codeInput.addEventListener('input', () => {
@@ -92,10 +89,20 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Neue Sitzung starten (Moderator-Endseite)
+  // ─── Neue Sitzung (Moderator-Endseite) ───────────────────
   document.getElementById('new-game-btn')?.addEventListener('click', () => {
     showPage('mod-setup');
   });
+
+  // ─── Views initialisieren (separat, damit Fehler hier
+  //     nicht die Navigation oben blockieren) ────────────────
+  try {
+    if (typeof ModeratorView !== 'undefined') ModeratorView.init();
+  } catch(e) { console.error('ModeratorView Fehler:', e); }
+
+  try {
+    if (typeof PlayerView !== 'undefined') PlayerView.init();
+  } catch(e) { console.error('PlayerView Fehler:', e); }
 
   console.log('🎮 QuizMaster bereit!');
 });
