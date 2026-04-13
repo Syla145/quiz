@@ -1,0 +1,8 @@
+[
+  {
+    "id": "quiz_001",
+    "title": "Das große Allgemeinwissen-Quiz",
+    "description": "Geografie, Wissenschaft, Geschichte & mehr",
+    "file": "data/quiz-sample.json"
+  }
+]
