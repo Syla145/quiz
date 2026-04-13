@@ -3,44 +3,88 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>QuizMaster – Moderator</title>
+  <title>QuizMaster - Moderator</title>
   <link rel="stylesheet" href="css/main.css">
+  <style>
+    .quiz-list-item {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 0.875rem 1rem;
+      background: var(--bg-elevated);
+      border: 2px solid var(--border);
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: all var(--transition);
+      text-align: left;
+      width: 100%;
+    }
+    .quiz-list-item:hover  { border-color: var(--accent); background: var(--bg-highlight); }
+    .quiz-list-item.active { border-color: var(--accent); background: var(--accent-glow); }
+    .quiz-list-item .qli-title { font-weight: 700; font-size: 0.95rem; color: var(--text-primary); }
+    .quiz-list-item .qli-desc  { font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.1rem; }
+    .quiz-list-item .qli-icon  { font-size: 1.5rem; flex-shrink: 0; }
+  </style>
 </head>
 <body>
 
-<!-- ══════════════════════════════════════
-     SETUP-ANSICHT
-══════════════════════════════════════ -->
+<!-- SETUP -->
 <div id="view-setup" style="display:flex;align-items:center;justify-content:center;min-height:100vh;padding:2rem;">
-  <div style="max-width:480px;width:100%;">
-    <a href="index.html" class="btn btn-secondary btn-sm" style="margin-bottom:1.5rem;display:inline-block;">← Zurück</a>
+  <div style="max-width:520px;width:100%;">
+    <a href="index.html" class="btn btn-secondary btn-sm" style="margin-bottom:1.5rem;display:inline-block;">&#8592; Zuruck</a>
     <div class="card">
       <h2 style="margin-bottom:1.5rem">Neue Sitzung</h2>
+
       <div class="input-group">
         <label for="mod-name">Dein Name als Moderator</label>
         <input id="mod-name" class="input" type="text" placeholder="z.B. Alex" value="Moderator">
       </div>
-      <p style="font-size:0.875rem;color:var(--text-muted);margin-bottom:1.5rem">
-        Die Quiz-Fragen werden aus <code>data/quiz-sample.json</code> geladen.
+
+      <div class="divider"></div>
+
+      <!-- Quiz aus Liste -->
+      <p style="font-size:0.8rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.75rem">
+        Quiz auswaehlen
       </p>
-      <button id="create-session-btn" class="btn btn-primary" style="width:100%">🚀 Sitzung erstellen</button>
+      <div id="quiz-list" style="display:flex;flex-direction:column;gap:0.5rem;margin-bottom:1rem">
+        <p style="color:var(--text-muted);font-size:0.875rem">Lade verfuegbare Quizze...</p>
+      </div>
+
+      <!-- Datei hochladen -->
+      <p style="font-size:0.8rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.75rem">
+        Oder eigene JSON-Datei laden
+      </p>
+      <label class="btn btn-secondary" style="width:100%;cursor:pointer;justify-content:center;display:flex">
+        &#128194; JSON-Datei auswaehlen
+        <input type="file" accept=".json" id="quiz-file-input" style="display:none">
+      </label>
+      <p id="loaded-file-name" style="font-size:0.8rem;color:var(--text-muted);margin-top:0.5rem;text-align:center;min-height:1.2em"></p>
+
+      <div class="divider"></div>
+
+      <!-- Vorschau gewaehltes Quiz -->
+      <div id="quiz-preview" style="display:none;background:var(--bg-elevated);border:1px solid var(--accent-dim);border-radius:var(--radius-md);padding:1rem;margin-bottom:1rem">
+        <p style="font-size:0.7rem;color:var(--accent);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.25rem">Ausgewaehlt</p>
+        <p id="quiz-preview-title" style="font-weight:700;font-size:1rem;color:var(--text-primary)"></p>
+        <p id="quiz-preview-stats" style="font-size:0.8rem;color:var(--text-muted);margin-top:0.25rem"></p>
+      </div>
+
+      <button id="create-session-btn" class="btn btn-primary" style="width:100%" disabled>
+        &#128640; Sitzung erstellen
+      </button>
     </div>
   </div>
 </div>
 
-<!-- ══════════════════════════════════════
-     LOBBY-ANSICHT
-══════════════════════════════════════ -->
+<!-- LOBBY -->
 <div id="view-lobby" style="display:none;padding:1.5rem;">
   <div class="container" style="max-width:700px;">
-
     <div class="card" style="margin-bottom:1.5rem;text-align:center">
       <p style="color:var(--text-secondary);margin-bottom:0.5rem;font-size:0.9rem;text-transform:uppercase;letter-spacing:0.1em">Sitzungscode</p>
-      <div id="mod-session-code" class="session-code">——</div>
+      <div id="mod-session-code" class="session-code">--</div>
       <p style="color:var(--text-muted);font-size:0.85rem;margin-top:0.5rem">Spieler geben diesen Code auf der Beitrittsseite ein</p>
-      <button id="copy-code-btn" class="btn btn-secondary btn-sm" style="margin-top:1rem">📋 Code kopieren</button>
+      <button id="copy-code-btn" class="btn btn-secondary btn-sm" style="margin-top:1rem">&#128203; Code kopieren</button>
     </div>
-
     <div class="card" style="margin-bottom:1.5rem">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
         <h3>Spieler in der Lobby</h3>
@@ -49,32 +93,25 @@
         </span>
       </div>
       <div id="lobby-player-list" class="player-list">
-        <p style="color:var(--text-muted);text-align:center">Noch keine Spieler…</p>
+        <p style="color:var(--text-muted);text-align:center">Noch keine Spieler...</p>
       </div>
     </div>
-
-    <button id="start-game-btn" class="btn btn-primary btn-lg" style="width:100%">▶ Spiel starten</button>
+    <button id="start-game-btn" class="btn btn-primary btn-lg" style="width:100%">&#9654; Spiel starten</button>
   </div>
 </div>
 
-<!-- ══════════════════════════════════════
-     SPIEL-ANSICHT
-══════════════════════════════════════ -->
+<!-- SPIEL -->
 <div id="view-game" style="display:none;padding:1.5rem;">
   <div class="container" style="max-width:1000px;">
     <div style="display:grid;grid-template-columns:1fr 220px;gap:1.5rem;align-items:start;">
-
       <div>
         <div id="mod-question-info" class="card-sm" style="display:flex;justify-content:space-between;margin-bottom:1rem;font-size:0.875rem;color:var(--text-secondary)">
-          <span>Runde —</span><span>Frage —</span>
+          <span>Runde -</span><span>Frage -</span>
         </div>
-
         <div id="mod-question-preview" class="card" style="margin-bottom:1rem">
-          <p style="color:var(--text-muted)">Lade Frage…</p>
+          <p style="color:var(--text-muted)">Lade Frage...</p>
         </div>
-
         <div id="buzzer-alert" class="card-sm" style="display:none;border-color:var(--buzzer);color:var(--buzzer);font-weight:700;font-size:1.1rem;margin-bottom:1rem;text-align:center"></div>
-
         <div class="card" style="margin-bottom:1rem">
           <h3 style="margin-bottom:1rem">Fragen-Steuerung</h3>
           <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1rem">
@@ -83,60 +120,53 @@
             <span id="timer-setting-display" style="color:var(--accent);font-weight:700;min-width:60px;text-align:right">30s</span>
           </div>
           <div style="display:flex;gap:0.75rem;flex-wrap:wrap">
-            <button id="open-question-btn" class="btn btn-success">▶ Frage öffnen</button>
-            <button id="close-question-btn" class="btn btn-danger" disabled>⏹ Frage schließen</button>
-            <button id="next-question-btn" class="btn btn-secondary">⏭ Nächste Frage</button>
+            <button id="open-question-btn" class="btn btn-success">&#9654; Frage oeffnen</button>
+            <button id="close-question-btn" class="btn btn-danger" disabled>&#9209; Frage schliessen</button>
+            <button id="next-question-btn" class="btn btn-secondary">&#9197; Naechste Frage</button>
           </div>
           <div style="display:flex;align-items:center;gap:1rem;margin-top:1rem">
-            <div id="mod-timer-display" class="timer-display">–</div>
+            <div id="mod-timer-display" class="timer-display">-</div>
             <span id="answer-count" style="color:var(--text-secondary);font-size:0.9rem">0/0 Antworten</span>
           </div>
         </div>
-
         <div class="card" style="margin-bottom:1rem">
           <h3 style="margin-bottom:1rem">Antworten</h3>
-          <div id="mod-answer-area"><p style="color:var(--text-muted)">Frage noch nicht geöffnet.</p></div>
+          <div id="mod-answer-area"><p style="color:var(--text-muted)">Frage noch nicht geoeffnet.</p></div>
         </div>
-
         <div class="card" style="margin-bottom:1rem">
           <h3 style="margin-bottom:0.5rem">Punkte vergeben</h3>
           <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:1rem">Positive oder negative Werte eingeben, dann "Vergeben" klicken.</p>
           <div id="award-points-form"></div>
-          <button id="award-points-btn" class="btn btn-primary" style="margin-top:1rem">✓ Punkte vergeben</button>
+          <button id="award-points-btn" class="btn btn-primary" style="margin-top:1rem">&#10003; Punkte vergeben</button>
         </div>
-
         <div class="card">
           <h3 style="margin-bottom:1rem">Rundengewinner eintragen</h3>
           <div style="display:flex;gap:0.75rem;align-items:center;flex-wrap:wrap">
             <select id="winner-select" class="input" style="flex:1;min-width:150px">
-              <option value="">Spieler wählen…</option>
+              <option value="">Spieler waehlen...</option>
             </select>
             <input id="winner-points" type="number" class="input" placeholder="Punkte" style="width:100px" value="100">
-            <button id="set-winner-btn" class="btn btn-primary">🏆 Vergeben</button>
+            <button id="set-winner-btn" class="btn btn-primary">&#127942; Vergeben</button>
           </div>
         </div>
       </div>
-
       <div>
         <div class="card" style="position:sticky;top:1rem">
           <h3 style="margin-bottom:1rem">Rangliste</h3>
           <div id="mod-player-list" class="player-list"></div>
         </div>
       </div>
-
     </div>
   </div>
 </div>
 
-<!-- ══════════════════════════════════════
-     ENDE-ANSICHT
-══════════════════════════════════════ -->
+<!-- ENDE -->
 <div id="view-end" style="display:none;align-items:center;justify-content:center;min-height:100vh;padding:2rem;text-align:center;">
   <div style="max-width:540px;width:100%;">
     <h1>QUIZ BEENDET</h1>
     <p style="color:var(--text-secondary);margin-bottom:2rem">Endstand</p>
     <div id="mod-final-scores" class="scoreboard" style="width:100%;margin-bottom:2rem"></div>
-    <a href="index.html" class="btn btn-primary btn-lg" style="width:100%">🔄 Neues Spiel</a>
+    <a href="index.html" class="btn btn-primary btn-lg" style="width:100%">&#128260; Neues Spiel</a>
   </div>
 </div>
 
@@ -144,7 +174,8 @@
 <script src="js/core/timer-engine.js"></script>
 <script src="js/question-types/renderers.js"></script>
 <script>
-// ── Hilfsfunktion: View wechseln ──────────────────────────
+
+// ── View wechseln ─────────────────────────────────────────
 function showView(id) {
   ['setup','lobby','game','end'].forEach(v => {
     const el = document.getElementById('view-' + v);
@@ -171,27 +202,91 @@ let _quizData = null;
 let _manualTimer = 30;
 let _timerInterval = null;
 
-// ── Quiz laden ────────────────────────────────────────────
-async function loadQuiz() {
+// ── Quiz-Liste laden ──────────────────────────────────────
+async function loadQuizList() {
+  const listEl = document.getElementById('quiz-list');
   try {
-    const res = await fetch('data/quiz-sample.json');
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    _quizData = await res.json();
-    console.log('Quiz geladen:', _quizData.quiz.title);
+    const res = await fetch('data/quiz-list.json');
+    if (!res.ok) throw new Error('Keine quiz-list.json gefunden');
+    const list = await res.json();
+
+    if (!list.length) {
+      listEl.innerHTML = '<p style="color:var(--text-muted);font-size:0.875rem">Keine Quizze in der Liste.</p>';
+      return;
+    }
+
+    listEl.innerHTML = '';
+    list.forEach(entry => {
+      const btn = document.createElement('button');
+      btn.className = 'quiz-list-item';
+      btn.innerHTML =
+        '<span class="qli-icon">&#127916;</span>' +
+        '<div style="flex:1"><div class="qli-title">' + entry.title + '</div>' +
+        (entry.description ? '<div class="qli-desc">' + entry.description + '</div>' : '') +
+        '</div>';
+      btn.addEventListener('click', () => selectQuizFromList(entry, btn));
+      listEl.appendChild(btn);
+    });
   } catch(e) {
-    console.warn('Fallback auf Demo-Quiz:', e);
-    _quizData = getDemoQuiz();
+    listEl.innerHTML = '<p style="color:var(--text-muted);font-size:0.8rem">Keine quiz-list.json gefunden.<br>Bitte lade eine Datei hoch.</p>';
   }
 }
 
-function getDemoQuiz() {
-  return { quiz: { id:'demo', title:'Demo', settings:{ buzzerEnabled:true }, rounds:[{ id:'r1', title:'Runde 1', questions:[{ id:'q1', type:'multiple-choice', category:'Demo', text:'Was ist 2+2?', options:[{id:'a',text:'3'},{id:'b',text:'4'},{id:'c',text:'5'},{id:'d',text:'22'}], correctAnswer:'b', points:100, timer:30, explanation:'4!' }] }] } };
+async function selectQuizFromList(entry, btnEl) {
+  // Alle Buttons deselektieren
+  document.querySelectorAll('.quiz-list-item').forEach(b => b.classList.remove('active'));
+  btnEl.classList.add('active');
+
+  try {
+    const res = await fetch(entry.file);
+    if (!res.ok) throw new Error('Datei nicht gefunden: ' + entry.file);
+    const data = await res.json();
+    setLoadedQuiz(data, entry.title);
+  } catch(e) {
+    showToast('Fehler: ' + e.message, 'error');
+  }
 }
 
-// ── Events binden ─────────────────────────────────────────
+// ── Datei-Upload ──────────────────────────────────────────
+document.getElementById('quiz-file-input').addEventListener('change', function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = evt => {
+    try {
+      const data = JSON.parse(evt.target.result);
+      // Alle Listeneintraege deselektieren
+      document.querySelectorAll('.quiz-list-item').forEach(b => b.classList.remove('active'));
+      setLoadedQuiz(data, file.name);
+      document.getElementById('loaded-file-name').textContent = '✓ ' + file.name;
+    } catch(err) {
+      showToast('Ungueltige JSON-Datei', 'error');
+    }
+  };
+  reader.readAsText(file);
+  this.value = '';
+});
+
+function setLoadedQuiz(data, label) {
+  _quizData = data;
+  const quiz = data.quiz || data;
+
+  // Vorschau anzeigen
+  const totalQuestions = (quiz.rounds || []).reduce((s, r) => s + (r.questions?.length || 0), 0);
+  document.getElementById('quiz-preview-title').textContent = quiz.title || label;
+  document.getElementById('quiz-preview-stats').textContent =
+    (quiz.rounds?.length || 0) + ' Runden · ' + totalQuestions + ' Fragen';
+  document.getElementById('quiz-preview').style.display = 'block';
+
+  // Button freischalten
+  document.getElementById('create-session-btn').disabled = false;
+  showToast('Quiz geladen: ' + (quiz.title || label), 'success');
+}
+
+// ── Sitzung erstellen ─────────────────────────────────────
 document.getElementById('create-session-btn').addEventListener('click', () => {
   const name = document.getElementById('mod-name').value.trim() || 'Moderator';
-  if (!_quizData) { showToast('Quiz wird noch geladen…', 'error'); return; }
+  if (!_quizData) { showToast('Bitte zuerst ein Quiz auswaehlen.', 'error'); return; }
   const { code } = SessionEngine.createSession(_quizData, name);
   document.getElementById('mod-session-code').textContent = code;
   document.getElementById('mod-player-count').textContent = '0';
@@ -256,7 +351,7 @@ document.getElementById('award-points-btn').addEventListener('click', () => {
 document.getElementById('set-winner-btn').addEventListener('click', () => {
   const pid = document.getElementById('winner-select').value;
   const pts = parseInt(document.getElementById('winner-points').value);
-  if (!pid || isNaN(pts) || pts <= 0) { showToast('Spieler und Punkte wählen.', 'error'); return; }
+  if (!pid || isNaN(pts) || pts <= 0) { showToast('Spieler und Punkte waehlen.', 'error'); return; }
   SessionEngine.awardPoints({ [pid]: pts });
   showToast('Gewinner eingetragen! +' + pts + ' Punkte', 'success');
 });
@@ -292,7 +387,7 @@ SessionEngine.on('sessionEnded', ({ scores }) => {
   renderFinalScores(scores);
 });
 
-// ── Render-Funktionen ─────────────────────────────────────
+// ── Render ────────────────────────────────────────────────
 function renderCurrentQuestion() {
   const state = SessionEngine.getState();
   if (!state) return;
@@ -307,7 +402,7 @@ function renderCurrentQuestion() {
       '<div class="question-text">' + q.text + '</div>' +
       '<div style="font-size:0.85rem;color:var(--text-muted);margin-top:0.5rem">Typ: ' + q.type + ' · ' + q.points + ' Punkte · Timer: ' + q.timer + 's</div>';
   }
-  document.getElementById('mod-answer-area').innerHTML = '<p style="color:var(--text-muted)">Frage noch nicht geöffnet.</p>';
+  document.getElementById('mod-answer-area').innerHTML = '<p style="color:var(--text-muted)">Frage noch nicht geoeffnet.</p>';
   renderAwardForm();
 }
 
@@ -322,8 +417,10 @@ function renderAnswers() {
 
 function renderLobbyList(players) {
   const list = document.getElementById('lobby-player-list');
-  if (!players.length) { list.innerHTML = '<p style="color:var(--text-muted);text-align:center">Noch keine Spieler…</p>'; return; }
-  list.innerHTML = players.map(p => '<div class="player-item"><span class="player-name">👤 ' + p.name + '</span></div>').join('');
+  if (!players.length) { list.innerHTML = '<p style="color:var(--text-muted);text-align:center">Noch keine Spieler...</p>'; return; }
+  list.innerHTML = players.map(p =>
+    '<div class="player-item"><span style="font-size:1.2rem">' + (p.avatar||'👤') + '</span><span class="player-name">' + p.name + '</span></div>'
+  ).join('');
 }
 
 function renderPlayerList() {
@@ -332,7 +429,7 @@ function renderPlayerList() {
   const list = document.getElementById('mod-player-list');
   const sorted = [...state.players].sort((a,b) => (state.scores[b.id]||0) - (state.scores[a.id]||0));
   list.innerHTML = sorted.map(p =>
-    '<div class="player-item"><span class="player-name">' + p.name + '</span><span class="player-score">' + (state.scores[p.id]||0) + '</span></div>'
+    '<div class="player-item"><span style="font-size:1.1rem">' + (p.avatar||'👤') + '</span><span class="player-name">' + p.name + '</span><span class="player-score">' + (state.scores[p.id]||0) + '</span></div>'
   ).join('');
 }
 
@@ -341,21 +438,24 @@ function renderAwardForm() {
   if (!state) return;
   document.getElementById('award-points-form').innerHTML = state.players.map(p =>
     '<div class="award-row card-sm" data-player-id="' + p.id + '" style="display:flex;align-items:center;gap:1rem;margin-bottom:0.5rem">' +
+    '<span style="font-size:1.1rem">' + (p.avatar||'👤') + '</span>' +
     '<span style="flex:1;font-weight:700">' + p.name + '</span>' +
     '<span style="color:var(--accent);font-family:var(--font-display);font-size:1.3rem">' + (state.scores[p.id]||0) + '</span>' +
     '<input type="number" class="input points-input" placeholder="±Punkte" style="width:100px;padding:0.5rem 0.75rem">' +
     '</div>'
   ).join('');
-  document.getElementById('winner-select').innerHTML = '<option value="">Spieler wählen…</option>' +
+  document.getElementById('winner-select').innerHTML = '<option value="">Spieler waehlen...</option>' +
     state.players.map(p => '<option value="' + p.id + '">' + p.name + '</option>').join('');
 }
 
 function renderFinalScores(scores) {
   const state = SessionEngine.getState();
-  const sorted = (state?.players||[]).map(p => ({ name:p.name, score:scores[p.id]||0 })).sort((a,b) => b.score-a.score);
+  const sorted = (state?.players||[]).map(p => ({ name:p.name, avatar:p.avatar||'👤', score:scores[p.id]||0 })).sort((a,b) => b.score-a.score);
   const icons = ['🥇','🥈','🥉'];
   document.getElementById('mod-final-scores').innerHTML = sorted.map((p,i) =>
-    '<div class="score-row"><span class="score-rank">' + (icons[i]||(i+1)+'.') + '</span><span class="score-name">' + p.name + '</span><span class="score-pts">' + p.score + '</span></div>'
+    '<div class="score-row"><span class="score-rank ' + (i===0?'gold':i===1?'silver':i===2?'bronze':'') + '">' + (icons[i]||(i+1)+'.') + '</span>' +
+    '<span style="font-size:1.3rem">' + p.avatar + '</span>' +
+    '<span class="score-name">' + p.name + '</span><span class="score-pts">' + p.score + '</span></div>'
   ).join('');
 }
 
@@ -378,7 +478,7 @@ function startTimer(seconds) {
       SessionEngine.closeQuestion();
       updateControls('closed');
       renderAnswers();
-      showToast('⏰ Zeit abgelaufen!', 'accent');
+      showToast('Zeit abgelaufen!', 'accent');
     }
   }, 200);
 }
@@ -386,11 +486,11 @@ function startTimer(seconds) {
 function stopTimer() {
   if (_timerInterval) { clearInterval(_timerInterval); _timerInterval = null; }
   const el = document.getElementById('mod-timer-display');
-  if (el) { el.textContent = '–'; el.classList.remove('warning'); }
+  if (el) { el.textContent = '-'; el.classList.remove('warning'); }
 }
 
 // ── Start ─────────────────────────────────────────────────
-loadQuiz();
+loadQuizList();
 </script>
 </body>
 </html>
