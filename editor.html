@@ -1,0 +1,1100 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QuizMaster – Editor</title>
+  <link rel="stylesheet" href="css/main.css">
+  <style>
+
+    /* ── Layout ─────────────────────────────────────────── */
+    body { min-height: 100vh; }
+
+    .editor-layout {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      min-height: 100vh;
+    }
+
+    /* ── Sidebar ─────────────────────────────────────────── */
+    .sidebar {
+      background: var(--bg-card);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+    }
+
+    .sidebar-header {
+      padding: 1.25rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .sidebar-title {
+      font-family: var(--font-display);
+      font-size: 1.3rem;
+      color: var(--accent);
+      letter-spacing: 0.05em;
+    }
+
+    .sidebar-section {
+      padding: 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .sidebar-section-title {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--text-muted);
+      margin-bottom: 0.75rem;
+      font-weight: 700;
+    }
+
+    /* ── Runden-Baum ─────────────────────────────────────── */
+    .round-tree { display: flex; flex-direction: column; gap: 0.25rem; }
+
+    .round-node {
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+
+    .round-header {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.6rem 0.75rem;
+      cursor: pointer;
+      background: var(--bg-elevated);
+      transition: background var(--transition);
+      user-select: none;
+    }
+    .round-header:hover { background: var(--bg-highlight); }
+    .round-header.active { background: var(--accent-glow); border-color: var(--accent-dim); }
+
+    .round-arrow {
+      color: var(--text-muted);
+      font-size: 0.7rem;
+      transition: transform 0.2s;
+      flex-shrink: 0;
+    }
+    .round-arrow.open { transform: rotate(90deg); }
+
+    .round-name {
+      flex: 1;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .round-count {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      background: var(--bg-base);
+      padding: 0.1rem 0.4rem;
+      border-radius: 10px;
+    }
+
+    .question-nodes { display: flex; flex-direction: column; gap: 0.15rem; padding: 0.25rem 0.4rem 0.4rem; }
+
+    .question-node {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.45rem 0.6rem;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: background var(--transition);
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+    }
+    .question-node:hover  { background: var(--bg-highlight); color: var(--text-primary); }
+    .question-node.active { background: var(--accent-glow); color: var(--accent); font-weight: 600; }
+
+    .question-type-icon { font-size: 0.9rem; flex-shrink: 0; }
+    .question-node-text { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    .btn-add-question {
+      width: 100%;
+      padding: 0.4rem;
+      background: none;
+      border: 1px dashed var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all var(--transition);
+      margin-top: 0.25rem;
+    }
+    .btn-add-question:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* ── Hauptbereich ─────────────────────────────────────── */
+    .editor-main {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .editor-toolbar {
+      position: sticky;
+      top: 0;
+      background: var(--bg-base);
+      border-bottom: 1px solid var(--border);
+      padding: 0.75rem 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      z-index: 10;
+    }
+
+    .editor-toolbar-title {
+      flex: 1;
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+    }
+
+    .editor-content {
+      padding: 1.5rem;
+      max-width: 780px;
+    }
+
+    /* ── Form-Sections ───────────────────────────────────── */
+    .form-section {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 1.5rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .form-section-title {
+      font-family: var(--font-display);
+      font-size: 1.1rem;
+      color: var(--accent);
+      letter-spacing: 0.05em;
+      margin-bottom: 1.25rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    .form-row.single { grid-template-columns: 1fr; }
+    .form-row.triple { grid-template-columns: 1fr 1fr 1fr; }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+
+    .field label {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .field input, .field select, .field textarea {
+      background: var(--bg-elevated);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-md);
+      color: var(--text-primary);
+      font-family: var(--font-body);
+      font-size: 0.95rem;
+      padding: 0.65rem 0.9rem;
+      outline: none;
+      transition: border-color var(--transition);
+      width: 100%;
+    }
+    .field input:focus, .field select:focus, .field textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+    .field textarea { resize: vertical; min-height: 80px; }
+    .field select { cursor: pointer; }
+
+    /* ── MC-Optionen ──────────────────────────────────────── */
+    .mc-options-list { display: flex; flex-direction: column; gap: 0.5rem; }
+
+    .mc-option-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .mc-option-letter {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      background: var(--bg-highlight);
+      color: var(--accent);
+      font-weight: 700;
+      font-size: 0.85rem;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .mc-option-row input[type="text"] {
+      flex: 1;
+      background: var(--bg-elevated);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      font-family: var(--font-body);
+      font-size: 0.9rem;
+      padding: 0.5rem 0.75rem;
+      outline: none;
+    }
+    .mc-option-row input[type="text"]:focus { border-color: var(--accent); }
+
+    .mc-correct-radio {
+      width: 18px; height: 18px;
+      accent-color: var(--success);
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .correct-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    /* ── Sort-Items ───────────────────────────────────────── */
+    .sort-items-list { display: flex; flex-direction: column; gap: 0.5rem; }
+
+    .sort-item-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .sort-item-num {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      background: var(--bg-highlight);
+      color: var(--text-secondary);
+      font-size: 0.85rem; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+
+    /* ── Typ-Selector ─────────────────────────────────────── */
+    .type-selector {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .type-btn {
+      padding: 0.75rem 0.5rem;
+      background: var(--bg-elevated);
+      border: 2px solid var(--border);
+      border-radius: var(--radius-md);
+      color: var(--text-secondary);
+      font-family: var(--font-body);
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+      transition: all var(--transition);
+    }
+    .type-btn:hover  { border-color: var(--accent); color: var(--text-primary); }
+    .type-btn.active { border-color: var(--accent); background: var(--accent-glow); color: var(--accent); }
+    .type-btn .type-icon { font-size: 1.4rem; display: block; margin-bottom: 0.25rem; }
+
+    /* ── Delete-Buttons ───────────────────────────────────── */
+    .btn-delete {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      padding: 0.3rem 0.5rem;
+      cursor: pointer;
+      transition: all var(--transition);
+      flex-shrink: 0;
+    }
+    .btn-delete:hover { border-color: var(--danger); color: var(--danger); }
+
+    /* ── Welcome Screen ───────────────────────────────────── */
+    .welcome-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 60vh;
+      text-align: center;
+      padding: 2rem;
+      color: var(--text-muted);
+    }
+    .welcome-screen .big-icon { font-size: 4rem; margin-bottom: 1rem; }
+
+    /* ── Responsive ───────────────────────────────────────── */
+    @media (max-width: 700px) {
+      .editor-layout { grid-template-columns: 1fr; }
+      .sidebar { position: static; height: auto; }
+      .form-row { grid-template-columns: 1fr; }
+      .form-row.triple { grid-template-columns: 1fr 1fr; }
+      .type-selector { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+
+<div class="editor-layout">
+
+  <!-- ════════════════════════════════════════
+       SIDEBAR
+  ════════════════════════════════════════ -->
+  <aside class="sidebar">
+
+    <div class="sidebar-header">
+      <a href="index.html" style="color:var(--text-muted);text-decoration:none;font-size:1.1rem" title="Zurück">←</a>
+      <span class="sidebar-title">QUIZ-EDITOR</span>
+    </div>
+
+    <!-- Quiz-Infos -->
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">Quiz</div>
+      <input id="quiz-title-sidebar" class="input" type="text" placeholder="Quiz-Titel"
+             style="font-size:0.875rem;padding:0.5rem 0.75rem;margin-bottom:0.5rem"
+             oninput="onQuizTitleChange(this.value)">
+      <div style="display:flex;gap:0.5rem">
+        <button class="btn btn-primary btn-sm" style="flex:1" onclick="exportQuiz()">⬇ Export</button>
+        <label class="btn btn-secondary btn-sm" style="flex:1;cursor:pointer;text-align:center">
+          ⬆ Import
+          <input type="file" accept=".json" style="display:none" onchange="importQuiz(event)">
+        </label>
+      </div>
+    </div>
+
+    <!-- Runden-Baum -->
+    <div class="sidebar-section" style="flex:1;overflow-y:auto">
+      <div class="sidebar-section-title">Struktur</div>
+      <div id="round-tree" class="round-tree"></div>
+      <button class="btn btn-secondary btn-sm" style="width:100%;margin-top:0.75rem" onclick="addRound()">
+        + Runde hinzufügen
+      </button>
+    </div>
+
+  </aside>
+
+  <!-- ════════════════════════════════════════
+       HAUPTBEREICH
+  ════════════════════════════════════════ -->
+  <main class="editor-main">
+
+    <!-- Toolbar -->
+    <div class="editor-toolbar">
+      <span class="editor-toolbar-title" id="toolbar-title">Wähle links eine Frage oder Runde aus</span>
+      <button id="toolbar-delete-btn" class="btn btn-danger btn-sm" style="display:none" onclick="deleteSelected()">
+        🗑 Löschen
+      </button>
+    </div>
+
+    <!-- Inhalt -->
+    <div class="editor-content" id="editor-content">
+      <div class="welcome-screen">
+        <div class="big-icon">✏️</div>
+        <h2 style="color:var(--text-primary);margin-bottom:0.5rem">Quiz-Editor</h2>
+        <p>Wähle links eine Runde oder Frage zum Bearbeiten,<br>oder erstelle eine neue Runde.</p>
+        <div style="margin-top:2rem;display:flex;gap:1rem;flex-wrap:wrap;justify-content:center">
+          <button class="btn btn-primary" onclick="addRound()">+ Neue Runde</button>
+          <label class="btn btn-secondary" style="cursor:pointer">
+            ⬆ Quiz importieren
+            <input type="file" accept=".json" style="display:none" onchange="importQuiz(event)">
+          </label>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+//  QUIZ-DATENMODELL
+// ═══════════════════════════════════════════════════════════
+
+let quiz = {
+  id: 'quiz_' + Date.now(),
+  title: 'Mein Quiz',
+  description: '',
+  version: '1.0',
+  settings: { defaultTimer: 30, defaultPoints: 100 },
+  rounds: []
+};
+
+// Aktuell ausgewähltes Element
+let selectedType = null; // 'round' | 'question'
+let selectedRoundIndex = null;
+let selectedQuestionIndex = null;
+let openRounds = new Set(); // welche Runden aufgeklappt sind
+
+// ─── ID-Generator ────────────────────────────────────────
+let _idCounter = Date.now();
+function genId(prefix) { return prefix + '_' + (++_idCounter); }
+
+// ─── Fragetyp-Icons ──────────────────────────────────────
+const TYPE_ICONS = {
+  'multiple-choice': '🔘',
+  'estimate':        '📊',
+  'image-quiz':      '🖼',
+  'sort':            '📋'
+};
+
+const TYPE_LABELS = {
+  'multiple-choice': 'Multiple Choice',
+  'estimate':        'Schätzfrage',
+  'image-quiz':      'Bilderquiz',
+  'sort':            'Sortierung'
+};
+
+const ANSWER_MODE_LABELS = {
+  'multiple-choice': 'Multiple Choice',
+  'estimate':        'Regler',
+  'buzzer':          'Buzzer',
+  'sort':            'Sortierung'
+};
+
+// ═══════════════════════════════════════════════════════════
+//  SIDEBAR / BAUM
+// ═══════════════════════════════════════════════════════════
+
+function renderTree() {
+  const tree = document.getElementById('round-tree');
+  tree.innerHTML = '';
+  document.getElementById('quiz-title-sidebar').value = quiz.title;
+
+  quiz.rounds.forEach((round, ri) => {
+    const isOpen = openRounds.has(ri);
+    const node = document.createElement('div');
+    node.className = 'round-node';
+
+    // Runden-Header
+    const header = document.createElement('div');
+    header.className = 'round-header' + (selectedType==='round' && selectedRoundIndex===ri ? ' active' : '');
+    header.innerHTML = `
+      <span class="round-arrow ${isOpen ? 'open' : ''}">▶</span>
+      <span class="round-name">${round.title || 'Runde ' + (ri+1)}</span>
+      <span class="round-count">${round.questions.length}</span>
+    `;
+    header.addEventListener('click', () => {
+      if (isOpen) openRounds.delete(ri); else openRounds.add(ri);
+      selectRound(ri);
+    });
+    node.appendChild(header);
+
+    // Fragen-Liste (wenn offen)
+    if (isOpen) {
+      const qList = document.createElement('div');
+      qList.className = 'question-nodes';
+
+      round.questions.forEach((q, qi) => {
+        const qNode = document.createElement('div');
+        qNode.className = 'question-node' + (selectedType==='question' && selectedRoundIndex===ri && selectedQuestionIndex===qi ? ' active' : '');
+        qNode.innerHTML = `
+          <span class="question-type-icon">${TYPE_ICONS[q.type] || '❓'}</span>
+          <span class="question-node-text">${q.text || '(Kein Text)'}</span>
+        `;
+        qNode.addEventListener('click', () => selectQuestion(ri, qi));
+        qList.appendChild(qNode);
+      });
+
+      // Frage hinzufügen
+      const addBtn = document.createElement('button');
+      addBtn.className = 'btn-add-question';
+      addBtn.textContent = '+ Frage hinzufügen';
+      addBtn.addEventListener('click', () => addQuestion(ri));
+      qList.appendChild(addBtn);
+
+      node.appendChild(qList);
+    }
+
+    tree.appendChild(node);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+//  SELEKTION
+// ═══════════════════════════════════════════════════════════
+
+function selectRound(ri) {
+  selectedType = 'round';
+  selectedRoundIndex = ri;
+  selectedQuestionIndex = null;
+  renderTree();
+  renderRoundEditor(ri);
+}
+
+function selectQuestion(ri, qi) {
+  selectedType = 'question';
+  selectedRoundIndex = ri;
+  selectedQuestionIndex = qi;
+  openRounds.add(ri);
+  renderTree();
+  renderQuestionEditor(ri, qi);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  RUNDEN-EDITOR
+// ═══════════════════════════════════════════════════════════
+
+function renderRoundEditor(ri) {
+  const round = quiz.rounds[ri];
+  setToolbar('Runde: ' + (round.title || 'Runde ' + (ri+1)), true);
+
+  document.getElementById('editor-content').innerHTML = `
+    <div class="form-section">
+      <div class="form-section-title">RUNDEN-EINSTELLUNGEN</div>
+      <div class="form-row">
+        <div class="field">
+          <label>Runden-Titel</label>
+          <input type="text" value="${esc(round.title)}" oninput="updateRound(${ri},'title',this.value)" placeholder="z.B. Runde 1: Geografie">
+        </div>
+        <div class="field">
+          <label>Punkte-Multiplikator</label>
+          <input type="number" min="1" max="10" value="${round.pointsMultiplier||1}" oninput="updateRound(${ri},'pointsMultiplier',parseFloat(this.value)||1)">
+        </div>
+      </div>
+      <div class="form-row single">
+        <div class="field">
+          <label>Beschreibung (optional)</label>
+          <textarea oninput="updateRound(${ri},'description',this.value)" placeholder="Kurze Beschreibung der Runde">${esc(round.description||'')}</textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="form-section-title">FRAGEN (${round.questions.length})</div>
+      ${round.questions.length === 0
+        ? '<p style="color:var(--text-muted);text-align:center;padding:1rem">Noch keine Fragen. Klicke unten um eine hinzuzufügen.</p>'
+        : round.questions.map((q,qi) => `
+          <div style="display:flex;align-items:center;gap:0.75rem;padding:0.75rem;background:var(--bg-elevated);border-radius:var(--radius-md);margin-bottom:0.5rem;cursor:pointer;border:1px solid var(--border)"
+               onclick="selectQuestion(${ri},${qi})">
+            <span style="font-size:1.2rem">${TYPE_ICONS[q.type]||'❓'}</span>
+            <span style="flex:1;font-size:0.9rem">${q.text||'(Kein Text)'}</span>
+            <span style="font-size:0.75rem;color:var(--text-muted)">${q.points||100} Pkt · ${q.timer||30}s</span>
+          </div>
+        `).join('')
+      }
+      <button class="btn btn-secondary" style="width:100%;margin-top:0.5rem" onclick="addQuestion(${ri})">
+        + Frage hinzufügen
+      </button>
+    </div>
+  `;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  FRAGEN-EDITOR
+// ═══════════════════════════════════════════════════════════
+
+function renderQuestionEditor(ri, qi) {
+  const q = quiz.rounds[ri].questions[qi];
+  setToolbar(TYPE_ICONS[q.type] + ' ' + (q.text?.slice(0,40) || 'Neue Frage'), true);
+
+  const content = document.getElementById('editor-content');
+  content.innerHTML = '';
+
+  // ── Typ-Auswahl ──────────────────────────────────────────
+  const typeSection = mkSection('FRAGETYP');
+  typeSection.innerHTML += `
+    <div class="type-selector">
+      ${['multiple-choice','estimate','image-quiz','sort'].map(t => `
+        <button class="type-btn ${q.type===t?'active':''}" onclick="changeQuestionType(${ri},${qi},'${t}')">
+          <span class="type-icon">${TYPE_ICONS[t]}</span>
+          ${TYPE_LABELS[t]}
+        </button>
+      `).join('')}
+    </div>
+  `;
+  content.appendChild(typeSection);
+
+  // ── Allgemeine Felder ────────────────────────────────────
+  const generalSection = mkSection('ALLGEMEIN');
+  generalSection.innerHTML += `
+    <div class="form-row single">
+      <div class="field">
+        <label>Frage</label>
+        <textarea oninput="updateQuestion(${ri},${qi},'text',this.value)" placeholder="Wie lautet deine Frage?">${esc(q.text||'')}</textarea>
+      </div>
+    </div>
+    <div class="form-row triple">
+      <div class="field">
+        <label>Kategorie</label>
+        <input type="text" value="${esc(q.category||'')}" oninput="updateQuestion(${ri},${qi},'category',this.value)" placeholder="z.B. Geografie">
+      </div>
+      <div class="field">
+        <label>Punkte</label>
+        <input type="number" min="0" value="${q.points||100}" oninput="updateQuestion(${ri},${qi},'points',parseInt(this.value)||100)">
+      </div>
+      <div class="field">
+        <label>Timer (Sek, 0 = kein)</label>
+        <input type="number" min="0" max="300" value="${q.timer||30}" oninput="updateQuestion(${ri},${qi},'timer',parseInt(this.value)||0)">
+      </div>
+    </div>
+    <div class="form-row single">
+      <div class="field">
+        <label>Erklärung nach Auflösung (optional)</label>
+        <input type="text" value="${esc(q.explanation||'')}" oninput="updateQuestion(${ri},${qi},'explanation',this.value)" placeholder="Kurze Erklärung zur richtigen Antwort">
+      </div>
+    </div>
+  `;
+  content.appendChild(generalSection);
+
+  // ── Antwortmodus ─────────────────────────────────────────
+  const modeSection = mkSection('ANTWORTMODUS');
+  const availableModes = getAvailableModes(q.type);
+  modeSection.innerHTML += `
+    <div class="form-row single">
+      <div class="field">
+        <label>Wie wird geantwortet?</label>
+        <select onchange="updateQuestion(${ri},${qi},'answerMode',this.value)">
+          ${availableModes.map(m => `
+            <option value="${m}" ${q.answerMode===m?'selected':''}>${ANSWER_MODE_LABELS[m]||m}</option>
+          `).join('')}
+        </select>
+      </div>
+    </div>
+  `;
+  content.appendChild(modeSection);
+
+  // ── Typ-spezifische Felder ───────────────────────────────
+  if (q.type === 'image-quiz') {
+    const imgSection = mkSection('BILD');
+    imgSection.innerHTML += `
+      <div class="form-row single">
+        <div class="field">
+          <label>Bild-URL oder Pfad</label>
+          <input type="text" value="${esc(q.image?.src||'')}"
+                 oninput="updateImageField(${ri},${qi},'src',this.value)"
+                 placeholder="z.B. assets/images/mein-bild.jpg">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field">
+          <label>Alt-Text</label>
+          <input type="text" value="${esc(q.image?.alt||'')}"
+                 oninput="updateImageField(${ri},${qi},'alt',this.value)"
+                 placeholder="Beschreibung des Bildes">
+        </div>
+        <div class="field">
+          <label>Zoom erlauben</label>
+          <select onchange="updateImageField(${ri},${qi},'zoomEnabled',this.value==='true')">
+            <option value="true"  ${q.image?.zoomEnabled!==false?'selected':''}>Ja</option>
+            <option value="false" ${q.image?.zoomEnabled===false?'selected':''}>Nein</option>
+          </select>
+        </div>
+      </div>
+      ${q.image?.src ? `<img src="${esc(q.image.src)}" alt="Vorschau" style="max-width:200px;max-height:120px;border-radius:8px;margin-top:0.5rem;border:1px solid var(--border)" onerror="this.style.display='none'">` : ''}
+    `;
+    content.appendChild(imgSection);
+  }
+
+  if (q.answerMode === 'multiple-choice' || (q.type === 'multiple-choice' && !q.answerMode)) {
+    content.appendChild(renderMCSection(ri, qi, q));
+  }
+
+  if (q.answerMode === 'estimate' || q.type === 'estimate') {
+    content.appendChild(renderEstimateSection(ri, qi, q));
+  }
+
+  if (q.type === 'sort') {
+    content.appendChild(renderSortSection(ri, qi, q));
+  }
+}
+
+// ── MC-Optionen ───────────────────────────────────────────
+function renderMCSection(ri, qi, q) {
+  const section = mkSection('ANTWORTOPTIONEN');
+  const opts = q.options || [
+    {id:'a',text:''},{id:'b',text:''},{id:'c',text:''},{id:'d',text:''}
+  ];
+  if (!q.options) updateQuestion(ri, qi, 'options', opts);
+
+  const letters = ['A','B','C','D','E','F'];
+  section.innerHTML += `
+    <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:0.75rem">
+      Klicke den Kreis rechts um die richtige Antwort zu markieren.
+    </p>
+    <div class="mc-options-list" id="mc-opts-${ri}-${qi}">
+      ${opts.map((opt, i) => `
+        <div class="mc-option-row">
+          <div class="mc-option-letter">${letters[i]||opt.id.toUpperCase()}</div>
+          <input type="text" value="${esc(opt.text)}" placeholder="Option ${letters[i]||opt.id.toUpperCase()}"
+                 oninput="updateMCOption(${ri},${qi},${i},'text',this.value)">
+          <input type="radio" class="mc-correct-radio" name="correct-${ri}-${qi}"
+                 ${q.correctAnswer===opt.id?'checked':''}
+                 onchange="updateQuestion(${ri},${qi},'correctAnswer','${opt.id}')">
+          <span class="correct-label">Richtig</span>
+          ${opts.length > 2 ? `<button class="btn-delete" onclick="removeMCOption(${ri},${qi},${i})">✕</button>` : ''}
+        </div>
+      `).join('')}
+    </div>
+    ${opts.length < 6 ? `<button class="btn btn-secondary btn-sm" style="margin-top:0.75rem" onclick="addMCOption(${ri},${qi})">+ Option hinzufügen</button>` : ''}
+  `;
+  return section;
+}
+
+// ── Schätzfrage ───────────────────────────────────────────
+function renderEstimateSection(ri, qi, q) {
+  const section = mkSection('REGLER-EINSTELLUNGEN');
+  const s = q.slider || { min:0, max:100, step:1, unit:'', correctValue:50, toleranceExact:0, toleranceClose:5, pointsExact:200, pointsClose:100 };
+  if (!q.slider) updateQuestion(ri, qi, 'slider', s);
+
+  section.innerHTML += `
+    <div class="form-row triple">
+      <div class="field">
+        <label>Minimum</label>
+        <input type="number" value="${s.min}" oninput="updateSlider(${ri},${qi},'min',parseFloat(this.value))">
+      </div>
+      <div class="field">
+        <label>Maximum</label>
+        <input type="number" value="${s.max}" oninput="updateSlider(${ri},${qi},'max',parseFloat(this.value))">
+      </div>
+      <div class="field">
+        <label>Schrittweite</label>
+        <input type="number" value="${s.step||1}" oninput="updateSlider(${ri},${qi},'step',parseFloat(this.value)||1)">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="field">
+        <label>Einheit (z.B. "km", "Jahr")</label>
+        <input type="text" value="${esc(s.unit||'')}" oninput="updateSlider(${ri},${qi},'unit',this.value)" placeholder="z.B. Jahr">
+      </div>
+      <div class="field">
+        <label>Richtige Antwort</label>
+        <input type="number" value="${s.correctValue}" oninput="updateSlider(${ri},${qi},'correctValue',parseFloat(this.value))">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="field">
+        <label>Toleranz exakt (±)</label>
+        <input type="number" min="0" value="${s.toleranceExact||0}" oninput="updateSlider(${ri},${qi},'toleranceExact',parseFloat(this.value)||0)">
+      </div>
+      <div class="field">
+        <label>Toleranz nah dran (±)</label>
+        <input type="number" min="0" value="${s.toleranceClose||5}" oninput="updateSlider(${ri},${qi},'toleranceClose',parseFloat(this.value)||5)">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="field">
+        <label>Punkte (exakt)</label>
+        <input type="number" min="0" value="${s.pointsExact||200}" oninput="updateSlider(${ri},${qi},'pointsExact',parseInt(this.value)||0)">
+      </div>
+      <div class="field">
+        <label>Punkte (nah dran)</label>
+        <input type="number" min="0" value="${s.pointsClose||100}" oninput="updateSlider(${ri},${qi},'pointsClose',parseInt(this.value)||0)">
+      </div>
+    </div>
+  `;
+  return section;
+}
+
+// ── Sortierung ────────────────────────────────────────────
+function renderSortSection(ri, qi, q) {
+  const section = mkSection('ELEMENTE (richtige Reihenfolge von oben nach unten)');
+  const items = q.items || [{id:genId('item'),text:''},{id:genId('item'),text:''},{id:genId('item'),text:''},{id:genId('item'),text:''}];
+  if (!q.items) {
+    updateQuestion(ri, qi, 'items', items);
+    updateQuestion(ri, qi, 'correctOrder', items.map(i=>i.id));
+  }
+
+  section.innerHTML += `
+    <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:0.75rem">
+      Trage die Elemente in der richtigen Reihenfolge ein (1 = erstes).
+    </p>
+    <div class="sort-items-list">
+      ${items.map((item, i) => `
+        <div class="sort-item-row">
+          <div class="sort-item-num">${i+1}</div>
+          <input type="text" value="${esc(item.text)}" placeholder="Element ${i+1}"
+                 oninput="updateSortItem(${ri},${qi},${i},this.value)"
+                 style="flex:1;background:var(--bg-elevated);border:1.5px solid var(--border);border-radius:var(--radius-sm);color:var(--text-primary);font-family:var(--font-body);font-size:0.9rem;padding:0.5rem 0.75rem;outline:none">
+          ${items.length > 2 ? `<button class="btn-delete" onclick="removeSortItem(${ri},${qi},${i})">✕</button>` : ''}
+        </div>
+      `).join('')}
+    </div>
+    ${items.length < 8 ? `<button class="btn btn-secondary btn-sm" style="margin-top:0.75rem" onclick="addSortItem(${ri},${qi})">+ Element hinzufügen</button>` : ''}
+    <div class="form-row" style="margin-top:1rem">
+      <div class="field">
+        <label>Punkte pro richtige Position</label>
+        <input type="number" min="0" value="${q.scoring?.pointsPerCorrectPosition||50}"
+               oninput="updateSortScoring(${ri},${qi},'pointsPerCorrectPosition',parseInt(this.value)||0)">
+      </div>
+      <div class="field">
+        <label>Bonus bei allem richtig</label>
+        <input type="number" min="0" value="${q.scoring?.bonusAllCorrect||100}"
+               oninput="updateSortScoring(${ri},${qi},'bonusAllCorrect',parseInt(this.value)||0)">
+      </div>
+    </div>
+  `;
+  return section;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  UPDATE-FUNKTIONEN
+// ═══════════════════════════════════════════════════════════
+
+function onQuizTitleChange(val) {
+  quiz.title = val;
+}
+
+function updateRound(ri, key, val) {
+  quiz.rounds[ri][key] = val;
+  renderTree();
+}
+
+function updateQuestion(ri, qi, key, val) {
+  quiz.rounds[ri].questions[qi][key] = val;
+  if (key === 'text') renderTree();
+}
+
+function updateImageField(ri, qi, key, val) {
+  if (!quiz.rounds[ri].questions[qi].image) quiz.rounds[ri].questions[qi].image = {};
+  quiz.rounds[ri].questions[qi].image[key] = val;
+  // Bild-Vorschau aktualisieren ohne komplettes Re-render
+  if (key === 'src') {
+    const prevImg = document.querySelector('.editor-content img[alt="Vorschau"]');
+    if (val && prevImg) { prevImg.src = val; prevImg.style.display=''; }
+    else if (val) {
+      const img = document.createElement('img');
+      img.src = val; img.alt = 'Vorschau';
+      img.style.cssText = 'max-width:200px;max-height:120px;border-radius:8px;margin-top:0.5rem;border:1px solid var(--border)';
+      img.onerror = () => img.style.display='none';
+    }
+  }
+}
+
+function updateMCOption(ri, qi, optIndex, key, val) {
+  quiz.rounds[ri].questions[qi].options[optIndex][key] = val;
+}
+
+function updateSlider(ri, qi, key, val) {
+  if (!quiz.rounds[ri].questions[qi].slider) quiz.rounds[ri].questions[qi].slider = {};
+  quiz.rounds[ri].questions[qi].slider[key] = val;
+}
+
+function updateSortItem(ri, qi, itemIndex, val) {
+  quiz.rounds[ri].questions[qi].items[itemIndex].text = val;
+  // correctOrder bleibt gleich (IDs ändern sich nicht)
+}
+
+function updateSortScoring(ri, qi, key, val) {
+  if (!quiz.rounds[ri].questions[qi].scoring) quiz.rounds[ri].questions[qi].scoring = {};
+  quiz.rounds[ri].questions[qi].scoring[key] = val;
+}
+
+function changeQuestionType(ri, qi, newType) {
+  const q = quiz.rounds[ri].questions[qi];
+  q.type = newType;
+  // Antwortmodus automatisch anpassen
+  const modes = getAvailableModes(newType);
+  if (!modes.includes(q.answerMode)) q.answerMode = modes[0];
+  renderQuestionEditor(ri, qi);
+  renderTree();
+}
+
+function getAvailableModes(type) {
+  switch(type) {
+    case 'multiple-choice': return ['multiple-choice'];
+    case 'estimate':        return ['estimate'];
+    case 'sort':            return ['sort'];
+    case 'image-quiz':      return ['multiple-choice','buzzer','estimate'];
+    default:                return ['multiple-choice'];
+  }
+}
+
+// ─── MC-Optionen hinzufügen/entfernen ────────────────────
+function addMCOption(ri, qi) {
+  const opts = quiz.rounds[ri].questions[qi].options || [];
+  const letters = ['a','b','c','d','e','f'];
+  opts.push({ id: letters[opts.length] || genId('opt'), text: '' });
+  quiz.rounds[ri].questions[qi].options = opts;
+  renderQuestionEditor(ri, qi);
+}
+
+function removeMCOption(ri, qi, optIndex) {
+  quiz.rounds[ri].questions[qi].options.splice(optIndex, 1);
+  renderQuestionEditor(ri, qi);
+}
+
+// ─── Sort-Items hinzufügen/entfernen ─────────────────────
+function addSortItem(ri, qi) {
+  const newItem = { id: genId('item'), text: '' };
+  quiz.rounds[ri].questions[qi].items.push(newItem);
+  quiz.rounds[ri].questions[qi].correctOrder.push(newItem.id);
+  renderQuestionEditor(ri, qi);
+}
+
+function removeSortItem(ri, qi, itemIndex) {
+  const items = quiz.rounds[ri].questions[qi].items;
+  const removedId = items[itemIndex].id;
+  items.splice(itemIndex, 1);
+  quiz.rounds[ri].questions[qi].correctOrder =
+    quiz.rounds[ri].questions[qi].correctOrder.filter(id => id !== removedId);
+  renderQuestionEditor(ri, qi);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  RUNDEN & FRAGEN HINZUFÜGEN / LÖSCHEN
+// ═══════════════════════════════════════════════════════════
+
+function addRound() {
+  const ri = quiz.rounds.length;
+  quiz.rounds.push({
+    id: genId('round'),
+    title: 'Runde ' + (ri + 1),
+    description: '',
+    pointsMultiplier: 1,
+    questions: []
+  });
+  openRounds.add(ri);
+  renderTree();
+  selectRound(ri);
+}
+
+function addQuestion(ri) {
+  const qi = quiz.rounds[ri].questions.length;
+  quiz.rounds[ri].questions.push({
+    id: genId('q'),
+    type: 'multiple-choice',
+    answerMode: 'multiple-choice',
+    category: '',
+    text: '',
+    options: [
+      {id:'a',text:''},{id:'b',text:''},{id:'c',text:''},{id:'d',text:''}
+    ],
+    correctAnswer: 'a',
+    points: quiz.settings.defaultPoints || 100,
+    timer: quiz.settings.defaultTimer || 30,
+    explanation: ''
+  });
+  renderTree();
+  selectQuestion(ri, qi);
+}
+
+function deleteSelected() {
+  if (selectedType === 'round' && selectedRoundIndex !== null) {
+    if (!confirm('Runde "' + quiz.rounds[selectedRoundIndex].title + '" wirklich löschen?')) return;
+    quiz.rounds.splice(selectedRoundIndex, 1);
+    openRounds.delete(selectedRoundIndex);
+    selectedType = null; selectedRoundIndex = null; selectedQuestionIndex = null;
+    renderTree();
+    showWelcome();
+  } else if (selectedType === 'question' && selectedRoundIndex !== null && selectedQuestionIndex !== null) {
+    quiz.rounds[selectedRoundIndex].questions.splice(selectedQuestionIndex, 1);
+    selectedType = 'round';
+    selectedQuestionIndex = null;
+    renderTree();
+    renderRoundEditor(selectedRoundIndex);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  EXPORT / IMPORT
+// ═══════════════════════════════════════════════════════════
+
+function exportQuiz() {
+  // Titel aus Sidebar übernehmen
+  quiz.title = document.getElementById('quiz-title-sidebar').value || quiz.title;
+
+  const output = { quiz };
+  const blob = new Blob([JSON.stringify(output, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = (quiz.title || 'quiz').replace(/[^a-zA-Z0-9_-]/g,'_') + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('Quiz exportiert!', 'success');
+}
+
+function importQuiz(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (data.quiz) {
+        quiz = data.quiz;
+      } else if (data.rounds) {
+        quiz = data;
+      } else {
+        throw new Error('Ungültiges Format');
+      }
+      openRounds.clear();
+      selectedType = null; selectedRoundIndex = null; selectedQuestionIndex = null;
+      renderTree();
+      showWelcome();
+      showToast('Quiz importiert: ' + quiz.title, 'success');
+    } catch(err) {
+      showToast('Fehler beim Importieren: ' + err.message, 'error');
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = ''; // Reset
+}
+
+// ═══════════════════════════════════════════════════════════
+//  HILFSFUNKTIONEN
+// ═══════════════════════════════════════════════════════════
+
+function mkSection(title) {
+  const section = document.createElement('div');
+  section.className = 'form-section';
+  section.innerHTML = `<div class="form-section-title">${title}</div>`;
+  return section;
+}
+
+function setToolbar(title, showDelete) {
+  document.getElementById('toolbar-title').textContent = title;
+  document.getElementById('toolbar-delete-btn').style.display = showDelete ? 'inline-flex' : 'none';
+}
+
+function showWelcome() {
+  setToolbar('Wähle links eine Frage oder Runde aus', false);
+  document.getElementById('editor-content').innerHTML = `
+    <div class="welcome-screen">
+      <div class="big-icon">✏️</div>
+      <h2 style="color:var(--text-primary);margin-bottom:0.5rem">Quiz-Editor</h2>
+      <p>Wähle links eine Runde oder Frage zum Bearbeiten.</p>
+    </div>
+  `;
+}
+
+function esc(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function showToast(msg, type='') {
+  let t = document.getElementById('toast');
+  if (!t) { t = document.createElement('div'); t.id='toast'; t.className='toast'; document.body.appendChild(t); }
+  t.textContent = msg; t.className = 'toast ' + type;
+  requestAnimationFrame(() => requestAnimationFrame(() => t.classList.add('show')));
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ── Init ──────────────────────────────────────────────────
+renderTree();
+</script>
+</body>
+</html>
