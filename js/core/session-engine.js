@@ -132,7 +132,7 @@ const SessionEngine = (() => {
    * @param {string} code - Sitzungscode
    * @param {string} playerName
    */
-  function joinSession(code, playerName) {
+  function joinSession(code, playerName, avatar) {
     // Im MVP: Zustand aus localStorage lesen (gleicher Browser/Gerät)
     const stored = loadFromStorage();
     if (!stored || stored.code !== code.toUpperCase()) {
@@ -149,7 +149,7 @@ const SessionEngine = (() => {
     const player = {
       id: _playerId,
       name: playerName,
-      avatar: null,
+      avatar: avatar || null,
       joinedAt: Date.now(),
       status: 'active',
       score: 0,
