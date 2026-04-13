@@ -1,0 +1,176 @@
+{
+  "quiz": {
+    "id": "quiz_001",
+    "title": "Test 2",
+    "description": "Teste dein Wissen in verschiedenen Kategorien!",
+    "version": "1.0",
+    "settings": {
+      "defaultTimer": 30,
+      "defaultPoints": 100
+    },
+    "rounds": [
+      {
+        "id": "round_001",
+        "title": "Runde 1: Allgemeinwissen",
+        "pointsMultiplier": 1,
+        "questions": [
+          {
+            "id": "q_mc_001",
+            "type": "multiple-choice",
+            "answerMode": "multiple-choice",
+            "category": "Geografie",
+            "text": "Was ist die Hauptstadt von Australien?",
+            "image": null,
+            "options": [
+              {
+                "id": "a",
+                "text": "Sydney"
+              },
+              {
+                "id": "b",
+                "text": "Melbourne"
+              },
+              {
+                "id": "c",
+                "text": "Canberra"
+              },
+              {
+                "id": "d",
+                "text": "Brisbane"
+              }
+            ],
+            "correctAnswer": "c",
+            "points": 100,
+            "timer": 30,
+            "explanation": "Canberra ist seit 1927 die Hauptstadt Australiens."
+          },
+          {
+            "id": "q_est_001",
+            "type": "estimate",
+            "answerMode": "estimate",
+            "category": "Wissenschaft",
+            "text": "In welchem Jahr wurde das World Wide Web erfunden?",
+            "image": null,
+            "slider": {
+              "min": 1970,
+              "max": 2000,
+              "step": 1,
+              "unit": "Jahr",
+              "correctValue": 1989,
+              "toleranceExact": 0,
+              "toleranceClose": 2,
+              "pointsExact": 200,
+              "pointsClose": 100
+            },
+            "points": 200,
+            "timer": 45,
+            "explanation": "Tim Berners-Lee erfand das WWW 1989 am CERN."
+          }
+        ]
+      },
+      {
+        "id": "round_002",
+        "title": "Runde 2: Bilder-Quiz",
+        "pointsMultiplier": 2,
+        "questions": [
+          {
+            "id": "q_img_mc_001",
+            "type": "image-quiz",
+            "answerMode": "multiple-choice",
+            "category": "Sehenswürdigkeiten",
+            "text": "Welches Bauwerk ist das?",
+            "image": {
+              "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a8/Tour_Eiffel_Wikimedia_Commons.jpg/250px-Tour_Eiffel_Wikimedia_Commons.jpg",
+              "alt": "Berühmtes Bauwerk",
+              "zoomEnabled": true
+            },
+            "options": [
+              {
+                "id": "a",
+                "text": "Eiffelturm"
+              },
+              {
+                "id": "b",
+                "text": "Empire State Building"
+              },
+              {
+                "id": "c",
+                "text": "Burj Khalifa"
+              },
+              {
+                "id": "d",
+                "text": "Big Ben"
+              }
+            ],
+            "correctAnswer": "a",
+            "points": 150,
+            "timer": 20,
+            "explanation": "Der Eiffelturm in Paris wurde 1889 fertiggestellt."
+          },
+          {
+            "id": "q_img_buzzer_001",
+            "type": "image-quiz",
+            "answerMode": "buzzer",
+            "category": "Tiere",
+            "text": "Was für ein Tier ist das?",
+            "image": {
+              "src": "https://cdn.natuerlich.reisen/wp-content/uploads/2023/05/Nasenaffe-scaled.jpg",
+              "alt": "Ein Tier",
+              "zoomEnabled": true
+            },
+            "points": 200,
+            "timer": 30,
+            "explanation": "Der Moderator wertet die Antwort manuell."
+          }
+        ]
+      },
+      {
+        "id": "round_003",
+        "title": "Runde 3: Sortier-Quiz",
+        "pointsMultiplier": 1,
+        "questions": [
+          {
+            "id": "q_sort_001",
+            "type": "sort",
+            "answerMode": "sort",
+            "category": "Geschichte",
+            "text": "Sortiere diese Ereignisse chronologisch (ältestes zuerst):",
+            "image": null,
+            "items": [
+              {
+                "id": "item_1",
+                "text": "Mondlandung"
+              },
+              {
+                "id": "item_2",
+                "text": "Zweiter Weltkrieg Ende"
+              },
+              {
+                "id": "item_3",
+                "text": "Mauerfall Berlin"
+              },
+              {
+                "id": "item_4",
+                "text": "9/11 Anschläge"
+              }
+            ],
+            "correctOrder": [
+              "item_2",
+              "item_1",
+              "item_3",
+              "item_4"
+            ],
+            "scoring": {
+              "type": "partial",
+              "pointsPerCorrectPosition": 50,
+              "bonusAllCorrect": 100
+            },
+            "points": 300,
+            "timer": 60,
+            "explanation": "1945 → 1969 → 1989 → 2001"
+          }
+        ]
+      }
+    ]
+  }
+}
