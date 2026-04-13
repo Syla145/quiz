@@ -1,0 +1,134 @@
+{
+  "quiz": {
+    "id": "quiz_1776087892201",
+    "title": "Test 3",
+    "description": "",
+    "version": "1.0",
+    "settings": {
+      "defaultTimer": 30,
+      "defaultPoints": 100
+    },
+    "rounds": [
+      {
+        "id": "round_1776087892202",
+        "title": "Runde numero uno",
+        "description": "",
+        "pointsMultiplier": 1,
+        "questions": [
+          {
+            "id": "q_1776087892203",
+            "type": "higher-lower",
+            "answerMode": "higher-lower",
+            "category": "Fußballverein",
+            "text": "Wann wurde gegründet?",
+            "options": [
+              {
+                "id": "a",
+                "text": ""
+              },
+              {
+                "id": "b",
+                "text": ""
+              },
+              {
+                "id": "c",
+                "text": ""
+              },
+              {
+                "id": "d",
+                "text": ""
+              }
+            ],
+            "correctAnswer": "a",
+            "points": 100,
+            "timer": 30,
+            "explanation": "fdfdfd",
+            "pointsPerAnswer": 10,
+            "cards": [
+              {
+                "label": "Startkarte",
+                "value": 100,
+                "image": ""
+              },
+              {
+                "label": "Karte 2",
+                "value": 0,
+                "image": ""
+              }
+            ],
+            "unit": "",
+            "lives": 2,
+            "items": [
+              {
+                "id": "item_1776087892204",
+                "text": ""
+              },
+              {
+                "id": "item_1776087892205",
+                "text": ""
+              },
+              {
+                "id": "item_1776087892206",
+                "text": ""
+              },
+              {
+                "id": "item_1776087892207",
+                "text": ""
+              }
+            ],
+            "correctOrder": [
+              "item_1776087892204",
+              "item_1776087892205",
+              "item_1776087892206",
+              "item_1776087892207"
+            ]
+          },
+          {
+            "id": "q_1776087892208",
+            "type": "fight-list",
+            "answerMode": "fight-list",
+            "category": "Geographie",
+            "text": "USA Bundestaaten",
+            "options": [
+              {
+                "id": "a",
+                "text": ""
+              },
+              {
+                "id": "b",
+                "text": ""
+              },
+              {
+                "id": "c",
+                "text": ""
+              },
+              {
+                "id": "d",
+                "text": ""
+              }
+            ],
+            "correctAnswer": "a",
+            "points": 100,
+            "timer": 30,
+            "explanation": "fdfdf",
+            "cards": [
+              {
+                "label": "Startkarte",
+                "value": 100,
+                "image": ""
+              },
+              {
+                "label": "Karte 2",
+                "value": 0,
+                "image": ""
+              }
+            ],
+            "unit": "",
+            "lives": 2,
+            "pointsPerAnswer": 10
+          }
+        ]
+      }
+    ]
+  }
+}
