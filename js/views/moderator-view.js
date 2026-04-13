@@ -14,14 +14,17 @@ const ModeratorView = (() => {
   // ─── Init ────────────────────────────────────────────────
 
   function init() {
-    _loadQuiz();
     _bindEvents();
+    // Quiz laden – im Hintergrund, blockiert keine Navigation
+    _loadQuiz();
   }
 
   async function _loadQuiz() {
     try {
       const res = await fetch('data/quiz-sample.json');
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       _quizData = await res.json();
+      console.log('Quiz geladen:', _quizData.quiz?.title);
     } catch (err) {
       console.warn('Quiz-JSON nicht gefunden, Demo-Modus aktiv.', err);
       _quizData = _getDemoQuiz();
