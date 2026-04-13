@@ -122,6 +122,7 @@
           <div style="display:flex;gap:0.75rem;flex-wrap:wrap">
             <button id="open-question-btn" class="btn btn-success">&#9654; Frage oeffnen</button>
             <button id="close-question-btn" class="btn btn-danger" disabled>&#9209; Frage schliessen</button>
+            <button id="reveal-answers-btn" class="btn btn-secondary" disabled title="Antworten auf Zuschauer-Screen aufdecken">&#128065; Aufdecken</button>
             <button id="next-question-btn" class="btn btn-secondary">&#9197; Naechste Frage</button>
           </div>
           <div style="display:flex;align-items:center;gap:1rem;margin-top:1rem">
@@ -325,6 +326,19 @@ document.getElementById('close-question-btn').addEventListener('click', () => {
   renderAnswers();
 });
 
+document.getElementById('reveal-answers-btn').addEventListener('click', () => {
+  // Sendet REVEAL_ANSWERS an alle Zuschauer via BroadcastChannel
+  try {
+    const ch = new BroadcastChannel('quizmaster_channel');
+    ch.postMessage({ type: 'REVEAL_ANSWERS', payload: {} });
+    ch.close();
+    showToast('Antworten aufgedeckt!', 'success');
+    document.getElementById('reveal-answers-btn').disabled = true;
+  } catch(e) {
+    showToast('Fehler beim Aufdecken', 'error');
+  }
+});
+
 document.getElementById('next-question-btn').addEventListener('click', () => {
   stopTimer();
   SessionEngine.nextQuestion();
@@ -460,9 +474,10 @@ function renderFinalScores(scores) {
 }
 
 function updateControls(status) {
-  document.getElementById('open-question-btn').disabled  = (status === 'open');
-  document.getElementById('close-question-btn').disabled = (status !== 'open');
-  document.getElementById('next-question-btn').disabled  = (status === 'open');
+  document.getElementById('open-question-btn').disabled    = (status === 'open');
+  document.getElementById('close-question-btn').disabled   = (status !== 'open');
+  document.getElementById('next-question-btn').disabled    = (status === 'open');
+  document.getElementById('reveal-answers-btn').disabled   = (status !== 'closed');
 }
 
 function startTimer(seconds) {
