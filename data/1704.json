@@ -1,0 +1,175 @@
+{
+  "quiz": {
+    "id": "quiz_1776418169095",
+    "title": "1704",
+    "description": "",
+    "version": "1.0",
+    "settings": {
+      "defaultTimer": 30,
+      "defaultPoints": 100
+    },
+    "rounds": [
+      {
+        "id": "round_1776418169097",
+        "title": "Die leichten 5",
+        "description": "",
+        "pointsMultiplier": 1,
+        "questions": [
+          {
+            "id": "q_1776418169098",
+            "type": "higher-lower",
+            "answerMode": "higher-lower",
+            "category": "",
+            "text": "höhe von gebäuden",
+            "options": [
+              {
+                "id": "a",
+                "text": ""
+              },
+              {
+                "id": "b",
+                "text": ""
+              },
+              {
+                "id": "c",
+                "text": ""
+              },
+              {
+                "id": "d",
+                "text": ""
+              }
+            ],
+            "correctAnswer": "a",
+            "points": 100,
+            "timer": 0,
+            "explanation": "",
+            "cards": [
+              {
+                "label": "Burj Khalifa",
+                "value": 828,
+                "image": "https://lh3.googleusercontent.com/gps-cs-s/APNQkAGGUVmJ7Q01HQ7Iq1q4bG_p_GQzV600jSESrbawA9uUfeDPq5KmYZBuunmMDk4KobuN0mLzHkreY_iQt50s1zX-UhnObTkgcKTqZVxkvwjw8hED57n5UbRWWjPXgMc4AHAczL8d=w270-h312-n-k-no",
+                "isStart": false
+              },
+              {
+                "label": "Shanghai Tower",
+                "value": 632,
+                "image": "https://lh3.googleusercontent.com/gps-cs-s/APNQkAGDDobRwaB5ey1MjblncdPANod37nJsS96u_xmcs1LCoPiioEI7qcX9REgzKD-_1RUvc60EBQwpGjTOMR2FDn442ksktWAbAqVyMxHFkY7GhT9zNLK92Vx1VAfGHNezyWZ5hEevLA=w270-h312-n-k-no",
+                "isStart": false
+              },
+              {
+                "label": "One World Trade Center",
+                "value": 541,
+                "image": "https://lh3.googleusercontent.com/gps-cs-s/APNQkAGVm-nHltvlhsetHA9mT1TBOkD6M8-cd7UsgohiDfKRV08y-DQiuHn8dczm73v-_1Upblpcs3rtLcZPFrR-iuqjV67VeK7_Ow4pd-rG95SGpIBT5aytfSm01404NaGOQYbM_fI=w270-h312-n-k-no",
+                "isStart": true
+              },
+              {
+                "label": "Eiffelturm",
+                "value": 330,
+                "image": "https://lh3.googleusercontent.com/gps-cs-s/APNQkAFXjMSGQzdy4kY7jOjhQDfspQhDV-npmwEZSjJJ5LG4ku39jyvKccKd7PBjzVPgIFr7bBNQorSVnCUOBeWaepJ_R8uMi-i37HdPgDD8wDrpEV1ZaDIEB_pQ28xXLnsbYmXMcpn2dw=s680-w680-h510-rw",
+                "isStart": false
+              },
+              {
+                "label": "Pisa",
+                "value": 57,
+                "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRZ1Pfo8BxVMHcvR3NiZoZj6RTNM51HnKTZeg&s",
+                "isStart": false
+              }
+            ],
+            "unit": "Meter",
+            "lives": 2
+          },
+          {
+            "id": "q_1776418169099",
+            "type": "fight-list",
+            "answerMode": "fight-list",
+            "category": "",
+            "text": "Fight List",
+            "options": [
+              {
+                "id": "a",
+                "text": ""
+              },
+              {
+                "id": "b",
+                "text": ""
+              },
+              {
+                "id": "c",
+                "text": ""
+              },
+              {
+                "id": "d",
+                "text": ""
+              }
+            ],
+            "correctAnswer": "a",
+            "points": 100,
+            "timer": 30,
+            "explanation": "",
+            "pointsPerAnswer": 10,
+            "hint": "Himmelsrichtungen",
+            "validAnswers": [
+              "Nord",
+              "Süd",
+              "West",
+              "Ost"
+            ]
+          },
+          {
+            "id": "q_1776418169100",
+            "type": "sort",
+            "answerMode": "sort",
+            "category": "",
+            "text": "Sortiere",
+            "options": [
+              {
+                "id": "a",
+                "text": ""
+              },
+              {
+                "id": "b",
+                "text": ""
+              },
+              {
+                "id": "c",
+                "text": ""
+              },
+              {
+                "id": "d",
+                "text": ""
+              }
+            ],
+            "correctAnswer": "a",
+            "points": 100,
+            "timer": 30,
+            "explanation": "",
+            "items": [
+              {
+                "id": "item_1776418169101",
+                "text": "1"
+              },
+              {
+                "id": "item_1776418169102",
+                "text": "2"
+              },
+              {
+                "id": "item_1776418169103",
+                "text": "3"
+              },
+              {
+                "id": "item_1776418169104",
+                "text": "4"
+              }
+            ],
+            "correctOrder": [
+              "item_1776418169101",
+              "item_1776418169102",
+              "item_1776418169103",
+              "item_1776418169104"
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
