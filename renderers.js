@@ -442,9 +442,17 @@ QuestionTypes['fight-list'] = {
 
     // Hinweis
     const hint = document.createElement('p');
-    hint.style.cssText = 'font-size:0.85rem;color:var(--text-secondary);margin-bottom:1rem';
+    hint.style.cssText = 'font-size:0.85rem;color:var(--text-secondary);margin-bottom:0.5rem';
     hint.textContent = 'Schreibe so viele Antworten wie möglich – eine pro Zeile (Enter drücken):';
     container.appendChild(hint);
+
+    // Konfigurierten Hinweis anzeigen falls vorhanden
+    if (question.hint) {
+      const customHint = document.createElement('div');
+      customHint.style.cssText = 'background:var(--accent-glow);border:1px solid var(--accent-dim);border-radius:var(--radius-md);padding:0.6rem 1rem;margin-bottom:1rem;font-weight:700;color:var(--accent)';
+      customHint.textContent = '💡 ' + question.hint;
+      container.appendChild(customHint);
+    }
 
     // Textarea
     const textarea = document.createElement('textarea');
@@ -941,7 +949,7 @@ function _renderHLScale(question, hl, container, showValues) {
     scaleArea.appendChild(cardEl);
   });
 
-  scaleArea.style.height = Math.max(120, 60 + Math.ceil(placedCards.length / 2) * RO_HEIGHT) + 'px';
+  scaleArea.style.height = Math.max(120, 60 + Math.ceil(placedCards.length / 2) * ROW_HEIGHT) + 'px';
 
   wrap.appendChild(scaleArea);
   container.appendChild(wrap);
