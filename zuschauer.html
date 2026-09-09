@@ -380,10 +380,10 @@
 
   </main>
 
-  <!-- Rechte Rangliste (Platz 2, 4, 6...) -->
+  <!-- Rechte Spalte: Rundenpunkte -->
   <div class="side-panel right" id="side-right">
-    <div class="side-title">Punkte</div>
-    <div id="players-right"></div>
+    <div class="side-title">Diese Runde</div>
+    <div id="round-points-display"></div>
   </div>
 
 </div>
@@ -419,18 +419,38 @@ function categoryClass(cat) {
 }
 
 // ── Ranglisten rendern ────────────────────────────────────
+// Rundenpunkte tracking
+let _roundStartScores = {};
+
 function renderSidePanels(state, animated) {
   if (!state) return;
   const players = [...state.players]
     .map(p => ({ ...p, score: state.scores[p.id] || 0 }))
     .sort((a, b) => b.score - a.score);
 
-  // Links: Plätze 1, 3, 5...  Rechts: Plätze 2, 4, 6...
-  const left  = players.filter((_, i) => i % 2 === 0);
-  const right = players.filter((_, i) => i % 2 === 1);
+  // Links: alle Spieler als Rangliste
+  renderPlayerList('players-left', players, players, animated);
 
-  renderPlayerList('players-left',  left,  players, animated);
-  renderPlayerList('players-right', right, players, animated);
+  // Rechts: Punkte dieser Runde (Differenz seit Rundenstart)
+  renderRoundPoints(state, players);
+}
+
+function renderRoundPoints(state, sortedPlayers) {
+  const container = document.getElementById('round-points-display');
+  if (!container) return;
+  container.innerHTML = '';
+
+  sortedPlayers.forEach(p => {
+    const roundPts = (state.scores[p.id] || 0) - (_roundStartScores[p.id] || 0);
+    const div = document.createElement('div');
+    div.className = 'side-player';
+    div.innerHTML =
+      '<span class="sp-avatar">' + (p.avatar || '🎮') + '</span>' +
+      '<span class="sp-name">' + p.name + '</span>' +
+      '<span class="sp-score" style="color:' + (roundPts > 0 ? 'var(--success)' : roundPts < 0 ? 'var(--danger)' : 'var(--text-muted)') + '">' +
+      (roundPts > 0 ? '+' : '') + roundPts + '</span>';
+    container.appendChild(div);
+  });
 }
 
 function renderPlayerList(containerId, players, allSorted, animated) {
@@ -608,7 +628,13 @@ function revealAnswers(state, question, answers) {
     } else if (question.type === 'sort' && Array.isArray(val)) {
       answerDiv.className = 'ac-answer';
       const texts = val.map(id => question.items?.find(it => it.id === id)?.text || id);
-      answerDiv.textContent = texts.join(' → ');
+      let correctCount = 0;
+      val.forEach((id, idx) => { if (question.correctOrder?.[idx] === id) correctCount++; });
+      const allOk = correctCount === question.correctOrder?.length;
+      answerDiv.innerHTML = texts.join(' → ') +
+        '<div style="font-size:0.75rem;margin-top:0.25rem;color:' + (allOk ? 'var(--success)' : 'var(--text-muted)') + '">' +
+        correctCount + '/' + (question.correctOrder?.length || 0) + ' richtig</div>';
+      if (allOk) card.className = card.className + ' correct';
     } else if (question.type === 'multiple-choice' || question.type === 'image-quiz') {
       const opt = question.options?.find(o => o.id === val);
       answerDiv.className = 'ac-answer';
@@ -733,6 +759,9 @@ SessionEngine.on('sessionEnded', ({ scores }) => {
             const q = state.quiz.rounds[payload.roundIndex]?.questions[payload.questionIndex];
             if (q) {
               _currentQuestion = q;
+              // Antworten-Screen zurücksetzen
+              document.getElementById('answers-grid').innerHTML = '';
+              document.getElementById('ans-correct-display').style.display = 'none';
               showQuestion(q, state);
               setStatusBadge('open');
               if (payload.timer && payload.timer.duration > 0) startTimer(payload.timer.endsAt);
