@@ -703,16 +703,11 @@ SessionEngine.on('playerJoined', () => {
 SessionEngine.on('channelMessage', ({ type, payload }) => {
   // Aufdecken-Event vom Moderator
   if (type === 'REVEAL_ANSWERS') {
-    const state = SessionEngine.getState();
-    if (!state || !_currentQuestion) return;
-    const qId = _currentQuestion.id;
-    const answers = {};
-    const rawAnswers = state.answers[qId] || {};
-    // Answers nach playerId aufschlüsseln
-    state.players.forEach(p => {
-      answers[p.id] = rawAnswers[p.id] || null;
-    });
-    revealAnswers(state, _currentQuestion, rawAnswers);
+    // Frisch aus localStorage laden für aktuellste Antworten
+    const freshState = JSON.parse(localStorage.getItem('quizmaster_session') || 'null') || SessionEngine.getState();
+    if (!freshState || !_currentQuestion) return;
+    const rawAnswers = (freshState.answers || {})[_currentQuestion.id] || {};
+    revealAnswers(freshState, _currentQuestion, rawAnswers);
   }
 });
 
@@ -794,8 +789,10 @@ SessionEngine.on('sessionEnded', ({ scores }) => {
           }
           if (type === 'REVEAL_ANSWERS') {
             if (_currentQuestion) {
-              const rawAnswers = state.answers[_currentQuestion.id] || {};
-              revealAnswers(state, _currentQuestion, rawAnswers);
+              // State FRISCH aus localStorage laden - enthält die aktuellsten Antworten
+              const freshState = JSON.parse(localStorage.getItem('quizmaster_session') || 'null') || state;
+              const rawAnswers = freshState.answers[_currentQuestion.id] || {};
+              revealAnswers(freshState, _currentQuestion, rawAnswers);
             }
           }
           if (type === 'SESSION_ENDED') {
