@@ -420,6 +420,7 @@ const SessionEngine = (() => {
           QUESTION_CLOSED: 'questionClosed',
           BUZZER_PRESSED: 'buzzer',
           BUZZER_RESET: 'buzzerReset',
+          GAME_RESET: 'gameReset',
           SCORES_UPDATED: 'scoreUpdate',
           SESSION_STARTED: 'sessionStarted',
           SESSION_ENDED: 'sessionEnded',
@@ -475,12 +476,31 @@ const SessionEngine = (() => {
     emit('buzzerReset', { excludedPlayers: excluded });
   }
 
+  /**
+   * Moderator: Spiel abbrechen und zurück in die Lobby
+   */
+  function resetToLobby() {
+    _requireRole('moderator');
+    _state.status = 'lobby';
+    _state.currentRoundIndex = 0;
+    _state.currentQuestionIndex = 0;
+    _state.questionStatus = 'idle';
+    _state.answers = {};
+    _state.timer = { duration: 0, startedAt: null, endsAt: null, status: 'idle' };
+    _state.buzzer = { enabled: false, activatedBy: null, activatedAt: null };
+    _state.higherLower = null;
+    // Punkte NICHT zurücksetzen – Moderator kann das manuell tun
+    persist();
+    broadcast('GAME_RESET', {});
+    emit('gameReset', {});
+  }
+
   return {
     on, off,
     createSession, joinSession, startSession,
     openQuestion, closeQuestion, submitAnswer,
     pressBuzzer, awardPoints, setScore,
-    nextQuestion, resetBuzzer,
+    nextQuestion, resetBuzzer, resetToLobby,
     getState, getRole, getPlayerId,
     getCurrentQuestion, getCurrentAnswers
   };
