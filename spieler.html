@@ -335,14 +335,22 @@ SessionEngine.on('questionClosed', () => {
   stopTimer();
   disableBuzzer();
   const q = SessionEngine.getCurrentQuestion();
-  if (q) {
-    // Warnung wenn keine Antwort abgegeben
-    if (_myLastAnswer === null && q.answerMode !== 'buzzer' && q.type !== 'higher-lower') {
-      showToast('⚠️ Du hast keine Antwort abgegeben!', 'error');
-    }
-    showCorrectAnswer(q);
-  } else {
-    renderWaiting('Auswertung läuft…');
+  // Warnung wenn keine Antwort abgegeben
+  if (q && _myLastAnswer === null && q.answerMode !== 'buzzer' && q.type !== 'higher-lower') {
+    showToast('⚠️ Du hast keine Antwort abgegeben!', 'error');
+  }
+  // Alle Eingaben sperren aber NOCH NICHT aufdecken
+  const area = document.getElementById('player-question-area');
+  if (area) {
+    area.querySelectorAll('button, input, textarea').forEach(el => el.disabled = true);
+  }
+  // Warte-Meldung unter der gesperrten Frage
+  const waitMsg = document.createElement('div');
+  waitMsg.id = 'wait-reveal-msg';
+  waitMsg.style.cssText = 'margin-top:1rem;padding:0.75rem 1rem;background:var(--bg-elevated);border-radius:var(--radius-md);text-align:center;color:var(--text-muted);font-size:0.9rem';
+  waitMsg.textContent = '⏳ Warte auf Aufdecken durch den Moderator...';
+  if (area && !document.getElementById('wait-reveal-msg')) {
+    area.appendChild(waitMsg);
   }
 });
 
@@ -396,6 +404,15 @@ SessionEngine.on('channelMessage', ({ type, payload }) => {
       if (q && q.type === 'higher-lower') {
         renderQuestion(q);
       }
+    }
+  }
+  if (type === 'REVEAL_ANSWERS') {
+    // Jetzt Auflösung anzeigen
+    const q = SessionEngine.getCurrentQuestion();
+    if (q) {
+      // Warte-Meldung entfernen
+      document.getElementById('wait-reveal-msg')?.remove();
+      showCorrectAnswer(q);
     }
   }
 });
