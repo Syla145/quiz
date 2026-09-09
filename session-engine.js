@@ -247,12 +247,10 @@ const SessionEngine = (() => {
     };
 
     persist();
-    const _pName = _getPlayerName(_playerId);
     broadcast('ANSWER_SUBMITTED', {
       playerId: _playerId,
       questionId: qId,
-      answer,
-      playerName: _pName
+      answer
     });
     emit('answerSubmitted', { playerId: _playerId, answer });
   }
@@ -264,6 +262,9 @@ const SessionEngine = (() => {
     _requireRole('player');
     if (!_state.buzzer.enabled || _state.buzzer.activatedBy) return;
     if (_state.questionStatus !== 'open') return;
+    // Prüfe ob Spieler ausgeschlossen ist
+    const excluded = _state.buzzer.excludedPlayers || [];
+    if (excluded.includes(_playerId)) return;
 
     _state.buzzer.activatedBy = _playerId;
     _state.buzzer.activatedAt = Date.now();
@@ -416,6 +417,7 @@ const SessionEngine = (() => {
           QUESTION_OPENED: 'questionOpened',
           QUESTION_CLOSED: 'questionClosed',
           BUZZER_PRESSED: 'buzzer',
+          BUZZER_RESET: 'buzzerReset',
           SCORES_UPDATED: 'scoreUpdate',
           SESSION_STARTED: 'sessionStarted',
           SESSION_ENDED: 'sessionEnded',
@@ -434,11 +436,10 @@ const SessionEngine = (() => {
       if (fresh) _state = fresh;
     }
     if (type === 'ANSWER_SUBMITTED') {
-      const { playerId, questionId, answer, playerName } = payload;
+      const { playerId, questionId, answer } = payload;
       if (!_state.answers[questionId]) _state.answers[questionId] = {};
       _state.answers[questionId][playerId] = {
         value: answer,
-        playerName: playerName || playerId,
         submittedAt: Date.now()
       };
       persist();
@@ -454,12 +455,29 @@ const SessionEngine = (() => {
   }
 
   // ─── Öffentliche API exportieren ────────────────────────
+  /**
+   * Moderator: Buzzer zurücksetzen (außer für ausgeschlossene Spieler)
+   * @param {string[]} excludePlayerIds - Diese Spieler dürfen nicht nochmal buzzern
+   */
+  function resetBuzzer(excludePlayerIds = []) {
+    _requireRole('moderator');
+    const excluded = excludePlayerIds.length > 0 ? excludePlayerIds : 
+      (_state.buzzer.activatedBy ? [_state.buzzer.activatedBy] : []);
+    _state.buzzer.enabled = true;
+    _state.buzzer.activatedBy = null;
+    _state.buzzer.activatedAt = null;
+    _state.buzzer.excludedPlayers = excluded;
+    persist();
+    broadcast('BUZZER_RESET', { excludedPlayers: excluded });
+    emit('buzzerReset', { excludedPlayers: excluded });
+  }
+
   return {
     on, off,
     createSession, joinSession, startSession,
     openQuestion, closeQuestion, submitAnswer,
     pressBuzzer, awardPoints, setScore,
-    nextQuestion,
+    nextQuestion, resetBuzzer,
     getState, getRole, getPlayerId,
     getCurrentQuestion, getCurrentAnswers
   };
