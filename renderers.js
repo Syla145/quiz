@@ -730,7 +730,10 @@ function _renderMCStats(question, answers, container) {
   const stats = {};
   question.options.forEach(o => stats[o.id] = []);
   Object.entries(answers).forEach(([pid, ans]) => {
-    if (stats[ans.value] !== undefined) stats[ans.value].push(_getPlayerName(pid, state));
+    if (ans && stats[ans.value] !== undefined) {
+      const name = ans.playerName || _getPlayerName(pid, state);
+      stats[ans.value].push(name);
+    }
   });
   const total = Object.values(stats).reduce((s, arr) => s + arr.length, 0);
 
@@ -742,19 +745,21 @@ function _renderMCStats(question, answers, container) {
     const pct = total > 0 ? Math.round(count / total * 100) : 0;
     const isCorrect = opt.id === question.correctAnswer;
     const row = document.createElement('div');
-    row.className = `mc-stat-row ${isCorrect ? 'correct' : ''}`;
-    row.innerHTML = `
-      <div class="mc-stat-label">
-        <span class="opt-id">${opt.id.toUpperCase()}</span>
-        <span class="opt-text">${opt.text}</span>
-        ${isCorrect ? '<span class="correct-badge">✓ Richtig</span>' : ''}
-      </div>
-      <div class="mc-stat-bar-wrap">
-        <div class="mc-stat-bar" style="width:${pct}%"></div>
-        <span class="mc-stat-count">${count} (${pct}%)</span>
-      </div>
-      ${players.length > 0 ? `<div style="font-size:0.75rem;color:var(--text-muted);margin-top:0.25rem">${players.join(', ')}</div>` : ''}
-    `;
+    row.className = 'mc-stat-row' + (isCorrect ? ' correct' : '');
+    row.innerHTML =
+      '<div class="mc-stat-label">' +
+        '<span class="opt-id">' + opt.id.toUpperCase() + '</span>' +
+        '<span class="opt-text">' + opt.text + '</span>' +
+        (isCorrect ? '<span class="correct-badge">✓ Richtig</span>' : '') +
+      '</div>' +
+      '<div class="mc-stat-bar-wrap">' +
+        '<div class="mc-stat-bar" style="width:' + pct + '%"></div>' +
+        '<span class="mc-stat-count">' + count + ' (' + pct + '%)</span>' +
+      '</div>' +
+      (players.length > 0 ?
+        '<div style="font-size:0.8rem;color:var(--text-secondary);margin-top:0.35rem;padding-left:0.25rem">' +
+        players.map(n => '<span style="display:inline-flex;align-items:center;gap:0.3rem;margin-right:0.5rem;background:var(--bg-highlight);padding:0.15rem 0.5rem;border-radius:10px">' + n + '</span>').join('') +
+        '</div>' : '');
     list.appendChild(row);
   });
   container.appendChild(list);
