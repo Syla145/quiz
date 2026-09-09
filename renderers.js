@@ -802,4 +802,413 @@ function _renderEstimateStats(question, answers, container) {
   });
 }
 
+
+// ─────────────────────────────────────────────────────────────
+// FIGHT LIST
+// ─────────────────────────────────────────────────────────────
+QuestionTypes['fight-list'] = {
+  renderPlayer(question, container, onSubmit) {
+    container.innerHTML = '';
+    let submitted = false;
+
+    const hint = document.createElement('p');
+    hint.style.cssText = 'font-size:0.85rem;color:var(--text-secondary);margin-bottom:0.5rem';
+    hint.textContent = 'Schreibe so viele Antworten wie möglich – eine pro Zeile (Enter):';
+    container.appendChild(hint);
+
+    if (question.hint) {
+      const customHint = document.createElement('div');
+      customHint.style.cssText = 'background:var(--accent-glow);border:1px solid var(--accent-dim);border-radius:var(--radius-md);padding:0.6rem 1rem;margin-bottom:1rem;font-weight:700;color:var(--accent)';
+      customHint.textContent = '💡 ' + question.hint;
+      container.appendChild(customHint);
+    }
+
+    const textarea = document.createElement('textarea');
+    textarea.style.cssText = 'width:100%;min-height:180px;background:var(--bg-elevated);border:2px solid var(--border);border-radius:var(--radius-md);color:var(--text-primary);font-family:var(--font-body);font-size:1rem;padding:0.875rem 1rem;outline:none;resize:vertical;line-height:1.7;box-sizing:border-box';
+    textarea.placeholder = 'Antwort 1\nAntwort 2\nAntwort 3\n...';
+    textarea.addEventListener('focus', () => textarea.style.borderColor = 'var(--accent)');
+    textarea.addEventListener('blur', () => textarea.style.borderColor = 'var(--border)');
+
+    const counter = document.createElement('div');
+    counter.style.cssText = 'font-size:0.8rem;color:var(--text-muted);margin-top:0.4rem;text-align:right';
+    counter.textContent = '0 Antworten';
+    textarea.addEventListener('input', () => {
+      const count = textarea.value.split('\n').filter(l => l.trim()).length;
+      counter.textContent = count + ' Antwort' + (count !== 1 ? 'en' : '');
+    });
+
+    const submitBtn = document.createElement('button');
+    submitBtn.className = 'btn-submit';
+    submitBtn.textContent = 'Antworten abgeben';
+    submitBtn.addEventListener('click', () => {
+      if (submitted) return;
+      const answers = textarea.value.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+      if (answers.length === 0) return;
+      submitted = true;
+      textarea.disabled = true;
+      submitBtn.disabled = true;
+      submitBtn.textContent = '✓ ' + answers.length + ' Antwort' + (answers.length !== 1 ? 'en' : '') + ' abgegeben';
+      onSubmit(answers);
+    });
+
+    container.appendChild(textarea);
+    container.appendChild(counter);
+    container.appendChild(submitBtn);
+  },
+
+  renderModerator(question, answers, container) {
+    container.innerHTML = '';
+    const state = typeof SessionEngine !== 'undefined' ? SessionEngine.getState() : null;
+    const pointsPerAnswer = question.pointsPerAnswer || 10;
+    const playerEntries = Object.entries(answers);
+
+    if (playerEntries.length === 0) {
+      container.innerHTML = '<p style="color:var(--text-muted)">Noch keine Antworten eingegangen.</p>';
+      return;
+    }
+
+    playerEntries.forEach(([pid, ans]) => {
+      const playerAnswers = Array.isArray(ans.value) ? ans.value : [];
+      const playerName = ans.playerName || _getPlayerName(pid, state);
+      const block = document.createElement('div');
+      block.style.cssText = 'background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-md);padding:1rem;margin-bottom:1rem';
+
+      const header = document.createElement('div');
+      header.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem';
+      header.innerHTML = '<span style="font-weight:700">' + playerName + '</span><span id="fl-score-' + pid + '" style="color:var(--accent);font-family:var(--font-display);font-size:1.3rem">0 Pkt</span>';
+      block.appendChild(header);
+
+      const list = document.createElement('div');
+      list.style.cssText = 'display:flex;flex-direction:column;gap:0.4rem';
+      const statusMap = {};
+
+      function recalcScore() {
+        const correct = Object.values(statusMap).filter(s => s === 'correct').length;
+        const el = document.getElementById('fl-score-' + pid);
+        if (el) el.textContent = (correct * pointsPerAnswer) + ' Pkt (' + correct + ' richtig)';
+      }
+
+      playerAnswers.forEach(function(answer, i) {
+        statusMap[i] = null;
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex;align-items:center;gap:0.5rem;padding:0.4rem 0.5rem;border-radius:6px;transition:background 0.2s';
+
+        const text = document.createElement('span');
+        text.style.cssText = 'flex:1;font-size:0.95rem';
+        text.textContent = answer;
+
+        const btnC = document.createElement('button');
+        btnC.textContent = '✓';
+        btnC.style.cssText = 'padding:0.25rem 0.6rem;border-radius:4px;border:1px solid var(--border);background:none;color:var(--text-muted);cursor:pointer;font-size:1rem;transition:all 0.15s';
+        const btnW = document.createElement('button');
+        btnW.textContent = '✗';
+        btnW.style.cssText = 'padding:0.25rem 0.6rem;border-radius:4px;border:1px solid var(--border);background:none;color:var(--text-muted);cursor:pointer;font-size:1rem;transition:all 0.15s';
+
+        function updateStyle() {
+          const s = statusMap[i];
+          row.style.background = s === 'correct' ? 'rgba(46,204,113,0.12)' : s === 'wrong' ? 'rgba(231,76,60,0.12)' : 'transparent';
+          btnC.style.background = s === 'correct' ? 'var(--success)' : 'none';
+          btnC.style.color = s === 'correct' ? '#000' : 'var(--text-muted)';
+          btnC.style.borderColor = s === 'correct' ? 'var(--success)' : 'var(--border)';
+          btnW.style.background = s === 'wrong' ? 'var(--danger)' : 'none';
+          btnW.style.color = s === 'wrong' ? '#fff' : 'var(--text-muted)';
+          btnW.style.borderColor = s === 'wrong' ? 'var(--danger)' : 'var(--border)';
+        }
+
+        btnC.addEventListener('click', function() { statusMap[i] = statusMap[i] === 'correct' ? null : 'correct'; updateStyle(); recalcScore(); });
+        btnW.addEventListener('click', function() { statusMap[i] = statusMap[i] === 'wrong' ? null : 'wrong'; updateStyle(); recalcScore(); });
+
+        row.appendChild(text); row.appendChild(btnC); row.appendChild(btnW);
+        list.appendChild(row);
+      });
+
+      block.appendChild(list);
+
+      const awardBtn = document.createElement('button');
+      awardBtn.className = 'btn btn-primary btn-sm';
+      awardBtn.style.cssText = 'margin-top:0.75rem;width:100%';
+      awardBtn.textContent = 'Punkte vergeben';
+      awardBtn.addEventListener('click', function() {
+        const correct = Object.values(statusMap).filter(s => s === 'correct').length;
+        const pts = correct * pointsPerAnswer;
+        if (typeof SessionEngine !== 'undefined') {
+          SessionEngine.awardPoints({ [pid]: pts });
+          awardBtn.textContent = '✓ ' + pts + ' Punkte vergeben';
+          awardBtn.disabled = true;
+        }
+      });
+      block.appendChild(awardBtn);
+      container.appendChild(block);
+    });
+  }
+};
+
+// ─────────────────────────────────────────────────────────────
+// HIGHER LOWER
+// ─────────────────────────────────────────────────────────────
+const ROW_HEIGHT = 52;
+
+QuestionTypes['higher-lower'] = {
+  renderPlayer(question, container, onSubmit) {
+    container.innerHTML = '';
+    const state = typeof SessionEngine !== 'undefined' ? SessionEngine.getState() : null;
+    const hl = state ? state.higherLower : null;
+    const myId = typeof SessionEngine !== 'undefined' ? SessionEngine.getPlayerId() : null;
+    const activePlayer = hl ? hl.activePlayerId : null;
+    const isMe = myId && activePlayer === myId;
+    const activeName = state && state.players ? (state.players.find(function(p) { return p.id === activePlayer; }) || {}).name || '' : '';
+    const myLives = (hl && myId) ? (hl.lives && hl.lives[myId] !== undefined ? hl.lives[myId] : question.lives || 2) : null;
+    const maxLives = question.lives || 2;
+
+    const header = document.createElement('div');
+    header.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem';
+
+    const activeInfo = document.createElement('div');
+    if (isMe) {
+      activeInfo.innerHTML = '<span style="color:var(--accent);font-weight:700;font-size:1rem">🎯 Du bist dran!</span><br><span style="color:var(--text-muted);font-size:0.8rem">Sage laut Higher oder Lower</span>';
+    } else if (activeName) {
+      activeInfo.innerHTML = '<span style="color:var(--text-secondary);font-size:0.9rem"><strong>' + activeName + '</strong> ist dran</span>';
+    } else {
+      activeInfo.innerHTML = '<span style="color:var(--text-muted);font-size:0.85rem">Warte auf den Moderator...</span>';
+    }
+
+    const livesEl = document.createElement('div');
+    livesEl.style.cssText = 'font-size:1.3rem;letter-spacing:0.1rem';
+    if (myLives !== null) {
+      livesEl.innerHTML = Array.from({length: maxLives}, function(_, i) {
+        return '<span style="opacity:' + (i < myLives ? 1 : 0.2) + '">❤️</span>';
+      }).join('');
+    }
+
+    header.appendChild(activeInfo);
+    header.appendChild(livesEl);
+    container.appendChild(header);
+
+    const scaleWrap = document.createElement('div');
+    _renderHLScale(question, hl, scaleWrap, false);
+    container.appendChild(scaleWrap);
+  },
+
+  renderModerator(question, answers, container) {
+    container.innerHTML = '';
+    const state = typeof SessionEngine !== 'undefined' ? SessionEngine.getState() : null;
+    const hl = state ? state.higherLower : null;
+
+    if (!hl) {
+      const startBtn = document.createElement('button');
+      startBtn.className = 'btn btn-primary';
+      startBtn.style.width = '100%';
+      startBtn.textContent = '▶ Higher-Lower starten';
+      startBtn.addEventListener('click', function() {
+        _hlInit(question, state);
+        QuestionTypes['higher-lower'].renderModerator(question, answers, container);
+      });
+      container.appendChild(startBtn);
+      return;
+    }
+
+    const scaleWrap = document.createElement('div');
+    _renderHLScale(question, hl, scaleWrap, true);
+    container.appendChild(scaleWrap);
+
+    const activeName = state.players ? (state.players.find(function(p) { return p.id === hl.activePlayerId; }) || {}).name || '-' : '-';
+    const activeLives = hl.lives ? (hl.lives[hl.activePlayerId] !== undefined ? hl.lives[hl.activePlayerId] : question.lives || 2) : 2;
+    const livesStr = Array.from({length: question.lives||2}, function(_, i) { return i < activeLives ? '❤️' : '🖤'; }).join('');
+
+    const infoBox = document.createElement('div');
+    infoBox.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:0.75rem 1rem;background:var(--bg-elevated);border-radius:var(--radius-md);margin:1rem 0';
+    infoBox.innerHTML = '<div><p style="font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em">Aktiver Spieler</p><p style="font-weight:700;font-size:1.1rem;color:var(--accent)">' + activeName + '</p></div><div style="text-align:right"><p style="font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em">Leben</p><p style="font-size:1.3rem">' + livesStr + '</p></div>';
+    container.appendChild(infoBox);
+
+    const startIndex = hl.startCardIndex !== undefined ? hl.startCardIndex : Math.max(0, question.cards.findIndex(function(c) { return c.isStart; }));
+    const placedIndices = hl.placedCardIndices || [];
+    const remainingIndices = question.cards.map(function(_, i) { return i; }).filter(function(i) { return !placedIndices.includes(i) && i !== startIndex; });
+    const nextCardIndex = remainingIndices.length > 0 ? remainingIndices[0] : null;
+    const nextCard = nextCardIndex !== null ? question.cards[nextCardIndex] : null;
+
+    if (nextCard) {
+      const nextBox = document.createElement('div');
+      nextBox.style.cssText = 'padding:1rem;background:var(--bg-elevated);border:2px dashed var(--accent-dim);border-radius:var(--radius-md);margin-bottom:1rem';
+      nextBox.innerHTML = '<p style="font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.5rem">Nächste Karte (nur du siehst den Wert)</p>' +
+        '<div style="display:flex;align-items:center;gap:1rem">' +
+        (nextCard.image ? '<img src="' + nextCard.image + '" style="width:60px;height:60px;object-fit:cover;border-radius:6px" onerror="this.style.display='none'">' : '') +
+        '<div><p style="font-weight:700;font-size:1.1rem">' + nextCard.label + '</p><p style="font-family:var(--font-display);font-size:1.8rem;color:var(--accent)">' + nextCard.value + ' ' + (question.unit||'') + '</p></div></div>';
+      container.appendChild(nextBox);
+
+      const btnRow = document.createElement('div');
+      btnRow.style.cssText = 'display:flex;gap:0.75rem;margin-bottom:0.75rem';
+      const btnH = document.createElement('button');
+      btnH.className = 'btn btn-success'; btnH.style.flex = '1';
+      btnH.innerHTML = '▲ Higher – Richtig';
+      btnH.addEventListener('click', function() { _hlAnswer(question, state, nextCardIndex, true, container, answers); });
+      const btnL = document.createElement('button');
+      btnL.className = 'btn btn-danger'; btnL.style.flex = '1';
+      btnL.innerHTML = '▼ Lower – Richtig';
+      btnL.addEventListener('click', function() { _hlAnswer(question, state, nextCardIndex, true, container, answers); });
+      btnRow.appendChild(btnH); btnRow.appendChild(btnL);
+      container.appendChild(btnRow);
+
+      const btnWrong = document.createElement('button');
+      btnWrong.className = 'btn btn-secondary';
+      btnWrong.style.cssText = 'width:100%;margin-bottom:1rem';
+      btnWrong.textContent = '✗ Spieler hat falsch geraten';
+      btnWrong.addEventListener('click', function() { _hlAnswer(question, state, nextCardIndex, false, container, answers); });
+      container.appendChild(btnWrong);
+    } else {
+      const done = document.createElement('div');
+      done.style.cssText = 'padding:1rem;text-align:center;color:var(--success);font-weight:700;border:1px solid var(--success);border-radius:var(--radius-md);margin-bottom:1rem';
+      done.textContent = '✓ Alle Karten platziert!';
+      container.appendChild(done);
+    }
+
+    const rankDiv = document.createElement('div');
+    rankDiv.innerHTML = '<p style="font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.5rem">Ausgeschieden</p>';
+    if (!hl.eliminated || hl.eliminated.length === 0) {
+      rankDiv.innerHTML += '<p style="color:var(--text-muted);font-size:0.85rem">Noch niemand.</p>';
+    } else {
+      hl.eliminated.forEach(function(pid, i) {
+        const name = _getPlayerName(pid, state);
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex;gap:0.75rem;align-items:center;padding:0.4rem 0;border-bottom:1px solid var(--border);font-size:0.9rem';
+        row.innerHTML = '<span style="color:var(--text-muted)">' + (i+1) + '.</span><span>' + name + '</span>';
+        rankDiv.appendChild(row);
+      });
+    }
+    container.appendChild(rankDiv);
+  }
+};
+
+// ── Higher Lower Hilfsfunktionen ──────────────────────────
+function _hlInit(question, state) {
+  if (!state) return;
+  const lives = {};
+  state.players.forEach(function(p) { lives[p.id] = question.lives || 2; });
+  const startIndex = question.cards.findIndex(function(c) { return c.isStart; });
+  state.higherLower = {
+    startCardIndex: startIndex >= 0 ? startIndex : 0,
+    placedCardIndices: [],
+    activePlayerId: state.players[0] ? state.players[0].id : null,
+    playerOrder: state.players.map(function(p) { return p.id; }),
+    lives: lives,
+    eliminated: []
+  };
+  _hlPersist(state);
+}
+
+function _hlAnswer(question, state, cardIndex, wasCorrect, container, answers) {
+  const hl = state.higherLower;
+  if (!hl) return;
+  hl.placedCardIndices.push(cardIndex);
+  if (!wasCorrect) _hlLoseLife(question, state, hl);
+  else _hlNextPlayer(state, hl);
+  _hlPersist(state);
+  QuestionTypes['higher-lower'].renderModerator(question, answers, container);
+}
+
+function _hlLoseLife(question, state, hl) {
+  const pid = hl.activePlayerId;
+  hl.lives[pid] = (hl.lives[pid] || 1) - 1;
+  if (hl.lives[pid] <= 0) {
+    hl.eliminated.push(pid);
+    hl.playerOrder = hl.playerOrder.filter(function(id) { return id !== pid; });
+  }
+  _hlNextPlayer(state, hl);
+}
+
+function _hlNextPlayer(state, hl) {
+  if (!hl.playerOrder || hl.playerOrder.length === 0) { hl.activePlayerId = null; return; }
+  const cur = hl.playerOrder.indexOf(hl.activePlayerId);
+  hl.activePlayerId = hl.playerOrder[(cur + 1) % hl.playerOrder.length];
+}
+
+function _hlPersist(state) {
+  localStorage.setItem('quizmaster_session', JSON.stringify(state));
+  try {
+    const ch = new BroadcastChannel('quizmaster_channel');
+    ch.postMessage({ type: 'HL_UPDATE', payload: state.higherLower });
+    ch.close();
+  } catch(e) {}
+}
+
+function _renderHLScale(question, hl, container, showValues) {
+  container.innerHTML = '';
+  const cards = question.cards || [];
+  if (!cards.length) return;
+
+  const startIndex = hl ? (hl.startCardIndex !== undefined ? hl.startCardIndex : 0) : Math.max(0, question.cards.findIndex(function(c) { return c.isStart; }));
+  const placedIndices = hl ? [startIndex].concat(hl.placedCardIndices || []) : [startIndex];
+  const placedCards = placedIndices.map(function(i) { return Object.assign({}, cards[i], {_index: i}); });
+
+  const allIndices = cards.map(function(_, i) { return i; });
+  const remainingIndices = allIndices.filter(function(i) { return !placedIndices.includes(i); });
+  const nextCard = remainingIndices.length > 0 ? Object.assign({}, cards[remainingIndices[0]], {_index: remainingIndices[0]}) : null;
+
+  const allValues = placedCards.map(function(c) { return Number(c.value); });
+  const minVal = Math.min.apply(null, allValues);
+  const maxVal = Math.max.apply(null, allValues);
+  const range = maxVal - minVal || 1;
+
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'position:relative;width:100%;padding:0 1rem;box-sizing:border-box';
+
+  if (nextCard) {
+    const pending = document.createElement('div');
+    pending.style.cssText = 'display:flex;justify-content:center;margin-bottom:1.5rem';
+    const card = _mkHLCardEl(nextCard, false, true, false);
+    card.style.border = '2px dashed var(--accent)';
+    pending.appendChild(card);
+    wrap.appendChild(pending);
+  }
+
+  const scaleArea = document.createElement('div');
+  const calcHeight = Math.max(140, 80 + Math.ceil(placedCards.length / 2) * ROW_HEIGHT);
+  scaleArea.style.cssText = 'position:relative;margin:0 2.5rem;height:' + calcHeight + 'px';
+
+  const line = document.createElement('div');
+  line.style.cssText = 'position:absolute;top:50%;left:0;right:0;height:3px;background:linear-gradient(to right,var(--info),var(--accent));border-radius:2px;transform:translateY(-50%)';
+  scaleArea.appendChild(line);
+
+  const lblLow = document.createElement('div');
+  lblLow.style.cssText = 'position:absolute;left:-2.5rem;top:50%;transform:translateY(-50%);font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em;white-space:nowrap';
+  lblLow.textContent = 'Niedrig';
+  scaleArea.appendChild(lblLow);
+
+  const lblHigh = document.createElement('div');
+  lblHigh.style.cssText = 'position:absolute;right:-2.5rem;top:50%;transform:translateY(-50%);font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em;white-space:nowrap';
+  lblHigh.textContent = 'Hoch';
+  scaleArea.appendChild(lblHigh);
+
+  const sorted = placedCards.slice().sort(function(a, b) { return Number(a.value) - Number(b.value); });
+  sorted.forEach(function(card, si) {
+    const pct = range > 0 ? ((Number(card.value) - minVal) / range) * 80 + 10 : 50;
+    const above = si % 2 === 0;
+    const cardEl = _mkHLCardEl(card, showValues, false, card._index === startIndex);
+    cardEl.style.position = 'absolute';
+    cardEl.style.left = 'calc(' + pct + '% - 45px)';
+    cardEl.style.width = '90px';
+    if (above) cardEl.style.bottom = 'calc(50% + 8px)';
+    else cardEl.style.top = 'calc(50% + 8px)';
+
+    const connector = document.createElement('div');
+    connector.style.cssText = 'position:absolute;left:calc(' + pct + '% - 1px);width:2px;background:var(--border);' + (above ? 'bottom:50%;height:8px' : 'top:50%;height:8px');
+    scaleArea.appendChild(connector);
+    scaleArea.appendChild(cardEl);
+  });
+
+  wrap.appendChild(scaleArea);
+  container.appendChild(wrap);
+}
+
+function _mkHLCardEl(card, showValue, isPending, isStart) {
+  const el = document.createElement('div');
+  el.style.cssText = 'background:' + (isStart ? 'var(--accent-glow)' : isPending ? 'var(--bg-card)' : 'var(--bg-elevated)') +
+    ';border:2px solid ' + (isStart ? 'var(--accent)' : 'var(--border)') +
+    ';border-radius:var(--radius-md);padding:0.4rem;text-align:center;transition:all 0.3s;position:relative';
+  const imgHtml = card.image ? '<img src="' + card.image + '" style="width:52px;height:52px;object-fit:cover;border-radius:6px;display:block;margin:0 auto 0.2rem" onerror="this.style.display='none'">' : '';
+  const valueHtml = showValue ? '<div style="font-family:var(--font-display);font-size:0.9rem;color:var(--accent);line-height:1">' + card.value + '</div>' : '';
+  const starHtml = isStart ? '<div style="position:absolute;top:-6px;right:-6px;background:var(--accent);color:#000;border-radius:50%;width:14px;height:14px;font-size:0.6rem;display:flex;align-items:center;justify-content:center;font-weight:900">★</div>' : '';
+  el.innerHTML = starHtml + imgHtml + '<div style="font-size:0.7rem;color:var(--text-secondary);line-height:1.2;margin-top:0.1rem">' + (card.label || '') + '</div>' + valueHtml;
+  return el;
+}
+
 window.QuestionTypes = QuestionTypes;
