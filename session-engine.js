@@ -247,8 +247,10 @@ const SessionEngine = (() => {
     };
 
     persist();
+    const _pName = _getPlayerName(_playerId);
     broadcast('ANSWER_SUBMITTED', {
       playerId: _playerId,
+      playerName: _pName,
       questionId: qId,
       answer
     });
@@ -436,10 +438,11 @@ const SessionEngine = (() => {
       if (fresh) _state = fresh;
     }
     if (type === 'ANSWER_SUBMITTED') {
-      const { playerId, questionId, answer } = payload;
+      const { playerId, questionId, answer, playerName } = payload;
       if (!_state.answers[questionId]) _state.answers[questionId] = {};
       _state.answers[questionId][playerId] = {
         value: answer,
+        playerName: playerName || playerId,
         submittedAt: Date.now()
       };
       persist();
