@@ -389,14 +389,36 @@ SessionEngine.on('playerJoined', ({ player }) => {
 });
 
 SessionEngine.on('answerSubmitted', () => {
+  const state = SessionEngine.getState();
   const answers = SessionEngine.getCurrentAnswers();
-  const total = SessionEngine.getState()?.players?.length || 0;
-  document.getElementById('answer-count').textContent = Object.keys(answers).length + '/' + total + ' Antworten';
+  const total = state?.players?.length || 0;
+  const count = Object.keys(answers).length;
+  document.getElementById('answer-count').textContent = count + '/' + total + ' Antworten';
   // Live-Update der Antworten wenn Frage offen
   const q = SessionEngine.getCurrentQuestion();
   const area = document.getElementById('mod-answer-area');
-  if (q && area && SessionEngine.getState()?.questionStatus === 'open') {
+  if (q && area && state?.questionStatus === 'open') {
     renderLiveAnswers(q, answers);
+  }
+});
+
+// Auch auf channelMessage hören für direkten State-Reload
+SessionEngine.on('channelMessage', ({ type, payload }) => {
+  if (type === 'ANSWER_SUBMITTED') {
+    // State ist bereits durch _handleIncomingMessage aktualisiert
+    // Jetzt UI updaten
+    setTimeout(() => {
+      const state = SessionEngine.getState();
+      const answers = SessionEngine.getCurrentAnswers();
+      const total = state?.players?.length || 0;
+      const count = Object.keys(answers).length;
+      document.getElementById('answer-count').textContent = count + '/' + total + ' Antworten';
+      const q = SessionEngine.getCurrentQuestion();
+      const area = document.getElementById('mod-answer-area');
+      if (q && area && state?.questionStatus === 'open') {
+        renderLiveAnswers(q, answers);
+      }
+    }, 50);
   }
 });
 
