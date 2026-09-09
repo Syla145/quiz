@@ -111,7 +111,13 @@
         <div id="mod-question-preview" class="card" style="margin-bottom:1rem">
           <p style="color:var(--text-muted)">Lade Frage...</p>
         </div>
-        <div id="buzzer-alert" class="card-sm" style="display:none;border-color:var(--buzzer);color:var(--buzzer);font-weight:700;font-size:1.1rem;margin-bottom:1rem;text-align:center"></div>
+        <div id="buzzer-alert" class="card-sm" style="display:none;border-color:var(--buzzer);color:var(--buzzer);font-weight:700;font-size:1.1rem;margin-bottom:1rem;text-align:center">
+          <span id="buzzer-alert-text"></span>
+          <div style="margin-top:0.75rem;display:flex;gap:0.5rem;justify-content:center">
+            <button id="buzzer-correct-btn" class="btn btn-success btn-sm">✓ Richtig</button>
+            <button id="buzzer-wrong-btn" class="btn btn-danger btn-sm">✗ Falsch – Buzzer reset</button>
+          </div>
+        </div>
         <div class="card" style="margin-bottom:1rem">
           <h3 style="margin-bottom:1rem">Fragen-Steuerung</h3>
           <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1rem">
@@ -317,6 +323,11 @@ document.getElementById('open-question-btn').addEventListener('click', () => {
   SessionEngine.openQuestion(_manualTimer);
   updateControls('open');
   if (_manualTimer > 0) startTimer(_manualTimer);
+  // Antwortbereich auf Live-Modus setzen
+  const area = document.getElementById('mod-answer-area');
+  if (area) {
+    area.innerHTML = '<p style="color:var(--text-muted);font-size:0.9rem">Warte auf Antworten...</p>';
+  }
 });
 
 document.getElementById('close-question-btn').addEventListener('click', () => {
@@ -381,16 +392,33 @@ SessionEngine.on('answerSubmitted', () => {
   const answers = SessionEngine.getCurrentAnswers();
   const total = SessionEngine.getState()?.players?.length || 0;
   document.getElementById('answer-count').textContent = Object.keys(answers).length + '/' + total + ' Antworten';
+  // Live-Update der Antworten wenn Frage offen
+  const q = SessionEngine.getCurrentQuestion();
+  const area = document.getElementById('mod-answer-area');
+  if (q && area && SessionEngine.getState()?.questionStatus === 'open') {
+    renderLiveAnswers(q, answers);
+  }
 });
 
 SessionEngine.on('buzzer', ({ playerId }) => {
   const state = SessionEngine.getState();
   const name = state?.players?.find(p => p.id === playerId)?.name || playerId;
   const el = document.getElementById('buzzer-alert');
-  el.textContent = '🔔 ' + name + ' hat gebuzzert!';
+  const textEl = document.getElementById('buzzer-alert-text');
+  if (textEl) textEl.textContent = '🔔 ' + name + ' hat gebuzzert!';
   el.style.display = 'block';
-  setTimeout(() => el.style.display = 'none', 5000);
   showToast('🔔 ' + name + ' hat gebuzzert!', 'accent');
+
+  // Buzzer-Buttons
+  document.getElementById('buzzer-correct-btn').onclick = () => {
+    el.style.display = 'none';
+    showToast('✓ Richtig! Punkte manuell vergeben.', 'success');
+  };
+  document.getElementById('buzzer-wrong-btn').onclick = () => {
+    el.style.display = 'none';
+    SessionEngine.resetBuzzer([playerId]); // Buzzer reset, dieser Spieler ausgeschlossen
+    showToast('✗ Falsch – Buzzer für andere wieder offen!', 'accent');
+  };
 });
 
 SessionEngine.on('scoreUpdate', () => renderPlayerList());
@@ -490,10 +518,11 @@ function startTimer(seconds) {
     el.classList.toggle('warning', rem <= 5);
     if (rem <= 0) {
       stopTimer();
-      SessionEngine.closeQuestion();
-      updateControls('closed');
-      renderAnswers();
-      showToast('Zeit abgelaufen!', 'accent');
+      // Frage NICHT automatisch schließen – Moderator drückt manuell
+      showToast('⏰ Zeit abgelaufen! Bitte Frage manuell schließen.', 'accent');
+      // Timer-Display rot blinken lassen
+      el.textContent = '0';
+      el.classList.add('warning');
     }
   }, 200);
 }
@@ -502,6 +531,29 @@ function stopTimer() {
   if (_timerInterval) { clearInterval(_timerInterval); _timerInterval = null; }
   const el = document.getElementById('mod-timer-display');
   if (el) { el.textContent = '-'; el.classList.remove('warning'); }
+}
+
+
+// Live-Antworten während Frage offen ─────────────────────────
+function renderLiveAnswers(q, answers) {
+  const area = document.getElementById('mod-answer-area');
+  if (!area) return;
+  const state = SessionEngine.getState();
+  const players = state?.players || [];
+  area.innerHTML = '';
+
+  // Zeige für jeden Spieler ob er geantwortet hat
+  const summaryDiv = document.createElement('div');
+  summaryDiv.style.cssText = 'display:flex;flex-wrap:wrap;gap:0.5rem;margin-bottom:1rem';
+  players.forEach(p => {
+    const hasAnswered = !!answers[p.id];
+    const chip = document.createElement('div');
+    chip.style.cssText = 'display:flex;align-items:center;gap:0.4rem;padding:0.3rem 0.75rem;border-radius:20px;font-size:0.85rem;font-weight:600;' +
+      (hasAnswered ? 'background:rgba(46,204,113,0.15);border:1px solid var(--success);color:var(--success)' : 'background:var(--bg-elevated);border:1px solid var(--border);color:var(--text-muted)');
+    chip.innerHTML = (p.avatar || '👤') + ' ' + p.name + (hasAnswered ? ' ✓' : ' …');
+    summaryDiv.appendChild(chip);
+  });
+  area.appendChild(summaryDiv);
 }
 
 // ── Start ─────────────────────────────────────────────────
