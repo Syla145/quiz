@@ -404,6 +404,18 @@ SessionEngine.on('sessionEnded', ({ scores }) => {
   stopTimer(); showView('end'); renderFinalScores(scores);
 });
 
+SessionEngine.on('gameReset', () => {
+  stopTimer();
+  _myLastAnswer = null;
+  // Lobby-Anzeige aktualisieren
+  const state = SessionEngine.getState();
+  if (state) {
+    document.getElementById('player-count').textContent = state.players.length;
+  }
+  showView('lobby');
+  showToast('Das Spiel wurde zurückgesetzt.', 'accent');
+});
+
 // ── Render ────────────────────────────────────────────────
 function renderWaiting(msg) {
   document.getElementById('player-question-area').innerHTML =
