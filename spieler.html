@@ -17,12 +17,14 @@
     .cat-default      { background: var(--accent-glow); border-color: var(--accent-dim) !important; color: var(--accent); }
 
     /* ── Avatar-Auswahl ───────────────────────────────── */
-    .avatar-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 0.5rem; margin-top: 0.5rem; }
+    .avatar-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 0.4rem; margin-top: 0.5rem; }
     .avatar-btn {
-      font-size: 1.8rem; padding: 0.5rem;
+      font-size: 1.5rem; padding: 0.35rem;
       background: var(--bg-elevated); border: 2px solid var(--border);
       border-radius: var(--radius-md); cursor: pointer;
       transition: all var(--transition); text-align: center;
+      overflow: hidden; line-height: 1.3; aspect-ratio: 1;
+      display: flex; align-items: center; justify-content: center;
     }
     .avatar-btn:hover   { border-color: var(--accent); transform: scale(1.1); }
     .avatar-btn.selected { border-color: var(--accent); background: var(--accent-glow); transform: scale(1.1); }
@@ -333,8 +335,15 @@ SessionEngine.on('questionClosed', () => {
   stopTimer();
   disableBuzzer();
   const q = SessionEngine.getCurrentQuestion();
-  if (q) showCorrectAnswer(q);
-  else renderWaiting('Auswertung läuft…');
+  if (q) {
+    // Warnung wenn keine Antwort abgegeben
+    if (_myLastAnswer === null && q.answerMode !== 'buzzer' && q.type !== 'higher-lower') {
+      showToast('⚠️ Du hast keine Antwort abgegeben!', 'error');
+    }
+    showCorrectAnswer(q);
+  } else {
+    renderWaiting('Auswertung läuft…');
+  }
 });
 
 SessionEngine.on('questionChanged', () => {
@@ -347,10 +356,22 @@ SessionEngine.on('buzzer', payload => {
   const myId = SessionEngine.getPlayerId();
   if (payload.playerId === myId) {
     document.getElementById('buzzer-btn').classList.add('pressed');
+    document.getElementById('buzzer-btn').disabled = true;
     showToast('🔔 Du hast den Buzzer gedrückt!', 'accent');
   } else {
     disableBuzzer();
-    showToast('Jemand anderes hat gebuzzert!', 'error');
+    showToast('🔔 ' + (payload.playerName || 'Jemand') + ' hat gebuzzert!', 'error');
+  }
+});
+
+SessionEngine.on('buzzerReset', ({ excludedPlayers }) => {
+  const myId = SessionEngine.getPlayerId();
+  if (!excludedPlayers.includes(myId)) {
+    // Buzzer wieder aktivieren für diesen Spieler
+    showBuzzer();
+    showToast('🔔 Buzzer wieder offen!', 'accent');
+  } else {
+    showToast('Du bist für diesen Buzzer gesperrt.', 'error');
   }
 });
 
@@ -370,12 +391,10 @@ SessionEngine.on('playerJoined', () => {
 SessionEngine.on('channelMessage', ({ type, payload }) => {
   if (type === 'HL_UPDATE') {
     const area = document.getElementById('player-question-area');
-    const cardsWrap = document.getElementById('hl-player-cards');
-    if (cardsWrap && area) {
+    if (area) {
       const q = SessionEngine.getCurrentQuestion();
       if (q && q.type === 'higher-lower') {
-        // Karten neu rendern
-        QuestionTypes['higher-lower'].renderPlayer(q, area, () => {});
+        renderQuestion(q);
       }
     }
   }
@@ -424,37 +443,58 @@ function renderQuestion(q) {
 
 function showCorrectAnswer(q) {
   const area = document.getElementById('player-question-area');
-  area.querySelectorAll('button, input').forEach(el => el.disabled = true);
+  area.querySelectorAll('button, input, textarea').forEach(el => el.disabled = true);
   const mode = q.answerMode || q.type;
   const reveal = document.createElement('div');
 
-  if (mode === 'buzzer') {
+  if (mode === 'buzzer' || mode === 'higher-lower') {
     reveal.className = 'answer-reveal neutral';
     reveal.innerHTML = '<div class="reveal-icon">🎙</div><div class="reveal-label">Auflösung</div>' +
       '<div class="reveal-text">Der Moderator wertet die Antwort aus.</div>' +
       (q.explanation ? '<div class="reveal-explanation">' + q.explanation + '</div>' : '');
+
+  } else if (mode === 'fight-list') {
+    const count = Array.isArray(_myLastAnswer) ? _myLastAnswer.length : 0;
+    reveal.className = 'answer-reveal ' + (count > 0 ? 'neutral' : 'wrong');
+    reveal.innerHTML = '<div class="reveal-icon">' + (count > 0 ? '✍️' : '😬') + '</div>' +
+      '<div class="reveal-label">' + (count > 0 ? count + ' Antwort' + (count !== 1 ? 'en' : '') + ' abgegeben' : 'Keine Antwort abgegeben') + '</div>' +
+      '<div class="reveal-text">Der Moderator wertet deine Antworten aus.</div>' +
+      (q.explanation ? '<div class="reveal-explanation">' + q.explanation + '</div>' : '');
+
   } else if (mode === 'multiple-choice' && q.correctAnswer) {
     const correctOpt = q.options?.find(o => o.id === q.correctAnswer);
     const isCorrect = _myLastAnswer === q.correctAnswer;
-    reveal.className = 'answer-reveal ' + (isCorrect ? 'correct' : 'wrong');
-    reveal.innerHTML = '<div class="reveal-icon">' + (isCorrect?'🎉':'😬') + '</div>' +
-      '<div class="reveal-label">' + (isCorrect?'Richtig!':'Leider falsch') + '</div>' +
+    const noAnswer = _myLastAnswer === null;
+    reveal.className = 'answer-reveal ' + (noAnswer ? 'wrong' : isCorrect ? 'correct' : 'wrong');
+    reveal.innerHTML = '<div class="reveal-icon">' + (noAnswer ? '⚠️' : isCorrect ? '🎉' : '😬') + '</div>' +
+      '<div class="reveal-label">' + (noAnswer ? 'Keine Antwort!' : isCorrect ? 'Richtig!' : 'Leider falsch') + '</div>' +
       '<div class="reveal-text">Richtige Antwort: ' + (correctOpt?.text || q.correctAnswer) + '</div>' +
       (q.explanation ? '<div class="reveal-explanation">' + q.explanation + '</div>' : '');
     area.querySelectorAll('.mc-option').forEach(btn => {
       if (btn.dataset.id === q.correctAnswer) btn.style.borderColor = 'var(--success)';
     });
+
   } else if (mode === 'estimate' && q.slider) {
-    reveal.className = 'answer-reveal neutral';
-    reveal.innerHTML = '<div class="reveal-icon">🎯</div><div class="reveal-label">Richtige Antwort</div>' +
-      '<div class="reveal-text">' + q.slider.correctValue + ' ' + q.slider.unit + '</div>' +
-      (_myLastAnswer !== null ? '<div class="reveal-explanation">Deine Schätzung: ' + _myLastAnswer + ' ' + q.slider.unit + ' (Δ ' + Math.abs(_myLastAnswer - q.slider.correctValue) + ')</div>' : '') +
+    const noAnswer = _myLastAnswer === null;
+    reveal.className = 'answer-reveal ' + (noAnswer ? 'wrong' : 'neutral');
+    reveal.innerHTML = '<div class="reveal-icon">' + (noAnswer ? '⚠️' : '🎯') + '</div>' +
+      '<div class="reveal-label">' + (noAnswer ? 'Keine Antwort!' : 'Richtige Antwort') + '</div>' +
+      '<div class="reveal-text">' + q.slider.correctValue + ' ' + (q.slider.unit||'') + '</div>' +
+      (_myLastAnswer !== null ? '<div class="reveal-explanation">Deine Schätzung: ' + _myLastAnswer + ' ' + (q.slider.unit||'') + ' (Δ ' + Math.abs(_myLastAnswer - q.slider.correctValue) + ')</div>' : '') +
       (q.explanation ? '<div class="reveal-explanation">' + q.explanation + '</div>' : '');
+
   } else if (mode === 'sort' && q.correctOrder) {
     const correctTexts = q.correctOrder.map(id => q.items.find(i => i.id === id)?.text || id);
-    reveal.className = 'answer-reveal neutral';
-    reveal.innerHTML = '<div class="reveal-icon">📋</div><div class="reveal-label">Richtige Reihenfolge</div>' +
-      '<div class="reveal-text">' + correctTexts.join(' → ') + '</div>' +
+    let correctCount = 0;
+    const noAnswer = !Array.isArray(_myLastAnswer) || _myLastAnswer.length === 0;
+    if (!noAnswer) {
+      _myLastAnswer.forEach((id, idx) => { if (q.correctOrder[idx] === id) correctCount++; });
+    }
+    const allCorrect = !noAnswer && correctCount === q.correctOrder.length;
+    reveal.className = 'answer-reveal ' + (noAnswer ? 'wrong' : allCorrect ? 'correct' : 'wrong');
+    reveal.innerHTML = '<div class="reveal-icon">' + (noAnswer ? '⚠️' : allCorrect ? '🎉' : '📋') + '</div>' +
+      '<div class="reveal-label">' + (noAnswer ? 'Keine Antwort!' : allCorrect ? 'Perfekt!' : correctCount + '/' + q.correctOrder.length + ' richtig') + '</div>' +
+      '<div class="reveal-text">Richtige Reihenfolge: ' + correctTexts.join(' → ') + '</div>' +
       (q.explanation ? '<div class="reveal-explanation">' + q.explanation + '</div>' : '');
   }
 
