@@ -105,8 +105,13 @@
   <div class="container" style="max-width:1000px;">
     <div style="display:grid;grid-template-columns:1fr 220px;gap:1.5rem;align-items:start;">
       <div>
-        <div id="mod-question-info" class="card-sm" style="display:flex;justify-content:space-between;margin-bottom:1rem;font-size:0.875rem;color:var(--text-secondary)">
-          <span>Runde -</span><span>Frage -</span>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+          <div id="mod-question-info" class="card-sm" style="display:flex;gap:1rem;font-size:0.875rem;color:var(--text-secondary);flex:1;margin-bottom:0">
+            <span>Runde -</span><span>Frage -</span>
+          </div>
+          <button id="abort-game-btn" class="btn btn-danger btn-sm" style="margin-left:1rem;white-space:nowrap">
+            ⏹ Spiel abbrechen
+          </button>
         </div>
         <div id="mod-question-preview" class="card" style="margin-bottom:1rem">
           <p style="color:var(--text-muted)">Lade Frage...</p>
@@ -445,6 +450,12 @@ SessionEngine.on('buzzer', ({ playerId }) => {
 
 SessionEngine.on('scoreUpdate', () => renderPlayerList());
 
+SessionEngine.on('gameReset', () => {
+  stopTimer();
+  showView('lobby');
+  showToast('Spiel zurückgesetzt', 'accent');
+});
+
 SessionEngine.on('sessionEnded', ({ scores }) => {
   stopTimer();
   showView('end');
@@ -577,6 +588,14 @@ function renderLiveAnswers(q, answers) {
   });
   area.appendChild(summaryDiv);
 }
+
+// ── Spiel abbrechen ──────────────────────────────────────
+document.getElementById('abort-game-btn')?.addEventListener('click', () => {
+  if (!confirm('Spiel wirklich abbrechen? Alle Spieler werden zurück in die Lobby geschickt.')) return;
+  SessionEngine.resetToLobby();
+  showView('lobby');
+  showToast('Spiel abgebrochen – zurück in der Lobby', 'accent');
+});
 
 // ── Start ─────────────────────────────────────────────────
 loadQuizList();
